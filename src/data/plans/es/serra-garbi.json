@@ -1,0 +1,36 @@
+{
+  "slug": "serra-garbi",
+  "country": "es",
+  "area": "calderona",
+  "areaName": "Serra Calderona",
+  "category": "moto",
+  "title": "Serra, Oronet y Garbí",
+  "summary": "Subes a Serra, coronas el Oronet, te asomas al mirador del Garbí con el mar delante y vuelves entre pinos por Portaceli y Olocau.",
+  "tags": ["Curvas", "Vistas al mar", "Poco tráfico"],
+  "core": { "km": 45, "minutes": 70 },
+  "bases": [{ "city": "valencia", "minutes": 35, "km": 33 }],
+  "stops": [
+    { "id": "serra", "name": "Serra", "kind": "Pueblo", "lat": 39.6848, "lng": -0.4287, "maps": "Serra, Valencia", "note": "Pueblo de montaña. Café o almuerzo antes de subir." },
+    { "id": "oronet", "name": "Puerto del Oronet", "kind": "Puerto", "lat": 39.7045, "lng": -0.3975, "maps": "Port de l'Oronet, Serra", "note": "Curvas enlazadas con buen asfalto. Arriba, desvío hacia el Garbí." },
+    { "id": "garbi", "name": "Mirador del Garbí", "kind": "Mirador", "lat": 39.7015, "lng": -0.3625, "maps": "Mirador del Garbí, Estivella", "note": "Aparcas al final y caminas unos 15 min. Tramo estrecho y sin quitamiedos en partes." },
+    { "id": "portaceli", "name": "Cartuja de Portaceli", "kind": "Monumento", "lat": 39.676, "lng": -0.4705, "maps": "Cartuja de Portaceli, Serra", "note": "Monasterio cartujo de clausura entre pinos: se ve por fuera." },
+    { "id": "olocau", "name": "Olocau", "kind": "Pueblo", "lat": 39.6995, "lng": -0.5295, "maps": "Olocau, Valencia", "note": "Pueblo de la Calderona, buena parada para almorzar a la vuelta." }
+  ],
+  "eats": [
+    { "name": "Bar Jubilats", "where": "C/ del Carreró, 17 · Serra", "near": "serra", "q": "Jubilats Serra, Carrer del Carreró 17, Serra", "types": ["almuerzo"], "desc": "Bar con terraza en el centro, para un café rápido antes del Oronet." },
+    { "name": "Bar Restaurante Descanso", "where": "C/ de Sagunt, 29 · Serra", "near": "serra", "q": "Bar Restaurante Descanso, Serra", "types": ["comida", "almuerzo"], "desc": "Cocina valenciana tradicional a buen precio: paella a la leña, bravas y postres caseros." },
+    { "name": "Casa Granero", "where": "C/ Canto Torre, 9 · Serra", "near": "serra", "q": "Restaurante Casa Granero, Serra", "types": ["comida"], "desc": "Le premiaron el puchero valenciano. Cuchara para los días fríos." },
+    { "name": "La Garrofera", "where": "Serra", "near": "serra", "q": "La Garrofera, Serra", "types": ["comida"], "desc": "Muy buenas reseñas y buena relación calidad/precio para comer." },
+    { "name": "Restaurante El Chaparral", "where": "Ctra. Barraix–Garbí, km 2,2", "near": "garbi", "q": "Restaurante El Chaparral, Serra", "types": ["almuerzo", "comida"], "top": true, "desc": "En plena carretera del Garbí, lleno de ciclistas y motoristas. Premio Cacau d'Or 2018 al almuerzo." },
+    { "name": "Hostal Restaurant l'Arquet", "where": "Olocau", "near": "olocau", "q": "Hostal Restaurant l'Arquet, Olocau", "types": ["almuerzo", "comida"], "top": true, "desc": "Buen almuerzo después de la ruta, trato amable y buen precio. Prueba la crema valenciana." },
+    { "name": "El Tapeo de Vignolo", "where": "Olocau", "near": "olocau", "q": "El Tapeo de Vignolo, Olocau", "types": ["almuerzo", "comida"], "desc": "Almuerzos muy buenos y tortilla hecha al momento. Mucho sitio para aparcar." }
+  ],
+  "approachEats": [
+    { "name": "Asador El Pastoret", "where": "C/ Pi del Salt, 10 · Náquera", "lat": 39.656, "lng": -0.4255, "q": "Asador El Pastoret, Náquera", "types": ["almuerzo", "comida"], "top": true, "desc": "Templo del esmorzaret (Cacau d'Or 2018), de camino a Serra si subes por Náquera." }
+  ],
+  "tips": [
+    { "t": "Ciclistas", "d": "El Oronet y el Garbí se llenan de bicis los fines de semana por la mañana. Adelanta con calma en las curvas ciegas." },
+    { "t": "Frío y humedad", "d": "En invierno, por la mañana, el asfalto puede estar húmedo en las curvas a la sombra." },
+    { "t": "Parque natural", "d": "Todo es Parque Natural de la Serra Calderona: respeta los límites y quédate en el asfalto." }
+  ]
+}

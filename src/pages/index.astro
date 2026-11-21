@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+import CityHome from '../components/CityHome.astro';
+import { loadAll } from '../lib/plans';
+const { cities } = await loadAll();
+const city = cities.find((c) => c.default) ?? cities[0];
+---
+<Base title="Planes · rutas en moto, montaña y escapadas">
+  <CityHome cityId={city.id} />
+</Base>

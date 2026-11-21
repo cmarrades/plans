@@ -1,0 +1,14 @@
+---
+import Base from '../../../layouts/Base.astro';
+import CityHome from '../../../components/CityHome.astro';
+import { loadAll } from '../../../lib/plans';
+
+export async function getStaticPaths() {
+  const { cities } = await loadAll();
+  return cities.map((c) => ({ params: { country: c.country, city: c.id }, props: { cityId: c.id, name: c.name } }));
+}
+const { cityId, name } = Astro.props;
+---
+<Base title={`Planes desde ${name}`} crumbs={[{ label: name }]}>
+  <CityHome cityId={cityId} />
+</Base>

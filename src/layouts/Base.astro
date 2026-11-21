@@ -1,0 +1,78 @@
+---
+import { url } from '../lib/plans';
+interface Props { title: string; description?: string; crumbs?: { label: string; href?: string }[] }
+const { title, description = 'Planes cerca de casa: rutas en moto, montaña y escapadas.', crumbs = [] } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta name="theme-color" content="#0d4c92" />
+  <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <style is:global>
+    /*
+    VOICE: guía de carreteras práctica, de quien conoce la zona; directa y sin adornos
+    IDEA: un road book / mapa de carreteras: señales azules, hitos kilométricos blancos con capuchón rojo
+    PICTURE: el trazado de cada ruta dibujado como protagonista, sobre un panel azul de señal
+    COLOUR and TYPE: azul señal #0d4c92 dominante, blanco, rojo hito #d62f2f de acento; Overpass (derivada de la rotulación de autopistas)
+    LAYOUT: bandas azules a sangre, tarjetas con trazado, hitos para km y tiempos
+    */
+    :root{color-scheme:light dark;
+      --bg:light-dark(#ffffff,#0b1522);--ink:light-dark(#121a24,#e8eef6);--mute:light-dark(#4f5d6e,#9fb0c4);
+      --blue:light-dark(#0d4c92,#0f3d73);--blue2:light-dark(#1b5fae,#1a4f8c);--red:#d62f2f;
+      --panel:light-dark(#f1f4f8,#122033);--line:light-dark(#dde3ea,#22344b);--card:light-dark(#ffffff,#0f1b2b)}
+    *{box-sizing:border-box;min-width:0}
+    html{scroll-padding-top:72px}
+    body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.55 Overpass,system-ui,sans-serif;overflow-x:clip}
+    h1,h2,h3{line-height:1.05;text-wrap:balance;margin:0;font-weight:900;letter-spacing:-.01em}
+    h1{font-size:clamp(36px,6vw,52px)}h2{font-size:clamp(26px,3.4vw,34px);margin-bottom:16px}h3{font-size:21px;font-weight:800}
+    a{color:inherit}
+    .band{padding:clamp(28px,4vw,64px) max(5vw,16px)}
+    .wrap{max-width:1240px;margin:0 auto}
+    .top{background:var(--blue);color:#fff;padding:12px max(5vw,16px)}
+    .top .wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .brand{display:inline-flex;align-items:center;gap:10px;font-weight:900;font-size:20px;text-decoration:none;color:#fff}
+    .brand svg{flex:none}
+    .crumbs{display:flex;flex-wrap:wrap;gap:6px;font-size:15px;color:#cfe0f5;margin:0;padding:0;list-style:none}
+    .crumbs li+li::before{content:"›";margin-right:6px;opacity:.7}
+    .crumbs a{color:#fff;text-decoration:none}.crumbs a:hover{text-decoration:underline}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 18px;border-radius:10px;border:0;cursor:pointer;font:800 16px Overpass,sans-serif;text-decoration:none}
+    .btn.red{background:var(--red);color:#fff}
+    .btn.white{background:#fff;color:var(--blue)}
+    .btn.ghost{background:transparent;color:inherit;box-shadow:inset 0 0 0 2px currentColor}
+    .btn.blue{background:var(--blue);color:#fff}
+    .btn:focus-visible,a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+    .hito{display:inline-grid;place-items:center;min-width:58px;background:#fff;color:#121a24;border-radius:10px 10px 4px 4px;border:2px solid #121a24;font-weight:900;line-height:1;padding:12px 6px 6px;position:relative;text-align:center;white-space:nowrap}
+    .hito::before{content:"";position:absolute;inset:-2px -2px auto -2px;height:12px;background:var(--red);border-radius:10px 10px 0 0;border:2px solid #121a24;border-bottom:0}
+    .hito b{font-size:22px}.hito small{font-size:11px;font-weight:600;margin-top:2px}
+    .tag{display:inline-block;font-size:13px;font-weight:600;border-radius:6px;padding:2px 8px;background:var(--panel);color:var(--ink)}
+    .muted{color:var(--mute)}
+    footer.foot{border-top:1px solid var(--line);color:var(--mute);font-size:14px}
+    select,input[type=text]{min-height:46px;font:600 16px Overpass,sans-serif;padding:8px 12px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href={url('/')}>
+        <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="6" fill="#fff"/><path d="M9 25 C9 15, 21 15, 21 5" stroke="#0d4c92" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M9 25 C9 15, 21 15, 21 5" stroke="#fff" stroke-width="1" stroke-dasharray="2 2.5" fill="none"/></svg>
+        Planes
+      </a>
+      {crumbs.length > 0 && (
+        <ol class="crumbs">
+          {crumbs.map((c) => <li>{c.href ? <a href={c.href}>{c.label}</a> : c.label}</li>)}
+        </ol>
+      )}
+    </div>
+  </header>
+  <slot />
+  <footer class="band foot"><div class="wrap">Tiempos y distancias aproximados. Datos de restaurantes sacados de guías y reseñas online: confirma horarios antes de ir. Mapas © colaboradores de OpenStreetMap.</div></footer>
+</body>
+</html>

@@ -1,0 +1,55 @@
+---
+import { planUrl, sketch, totalFrom, bucket, fmtMin, type Plan } from '../lib/plans';
+interface Props { plan: Plan; city: string; cityName: string; color: string }
+const { plan, city, cityName, color } = Astro.props;
+const pts = sketch(plan);
+const t = totalFrom(plan, city);
+const b = t ? bucket(t.ride) : null;
+const first = plan.stops[0];
+const line = pts.map((q) => q.map((n) => n.toFixed(1)).join(',')).join(' ');
+---
+<a class="pcard" href={planUrl(plan)}
+   data-bucket={b?.id ?? ''} data-total={t?.ride ?? 9999} data-lat={first.lat} data-lng={first.lng}>
+  <div class="pfig" style={`--c:${color}`}>
+    <svg viewBox="0 0 300 170" aria-hidden="true">
+      <polyline points={line} fill="none" stroke="#ffffff33" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points={line} fill="none" stroke="#fff" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+      {pts.map(([x, y], i) => (
+        <circle cx={x} cy={y} r={i === 0 || i === pts.length - 1 ? 7 : 5} fill={i === 0 ? 'var(--c)' : '#fff'} stroke="#fff" stroke-width="2.5"/>
+      ))}
+    </svg>
+    {t && <span class="hito pc-hito"><b>{t.approach}</b><small>min</small></span>}
+  </div>
+  <div class="pbody">
+    <div class="parea muted">{plan.areaName}</div>
+    <h3>{plan.title}</h3>
+    <p>{plan.summary}</p>
+    {t && (
+      <ul class="pfacts">
+        <li><b>{fmtMin(t.approach)}</b> desde {cityName}</li>
+        <li><b>≈ {fmtMin(t.ride)}</b> en moto, ida y vuelta</li>
+        <li><b>≈ {t.km} km</b></li>
+      </ul>
+    )}
+    <div class="ptags">
+      {b && <span class="tag strong">{b.label}</span>}
+      {plan.tags.map((g) => <span class="tag">{g}</span>)}
+    </div>
+    <span class="pdist muted" hidden></span>
+  </div>
+</a>
+<style>
+  .pcard{display:grid;grid-template-rows:auto 1fr;background:var(--card);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;border:2px solid var(--line);transition:transform .15s,border-color .15s}
+  .pcard:hover{transform:translateY(-3px);border-color:var(--blue2)}
+  .pfig{position:relative;background:linear-gradient(160deg,var(--blue2),var(--blue));aspect-ratio:300/170}
+  .pfig svg{position:absolute;inset:0;width:100%;height:100%}
+  .pc-hito{position:absolute;right:14px;bottom:12px}
+  .pbody{padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px}
+  .parea{font-size:14px;font-weight:600}
+  .pbody p{margin:0;font-size:15.5px}
+  .pfacts{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14.5px}
+  .pfacts b{white-space:nowrap}
+  .ptags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .tag.strong{background:var(--blue);color:#fff}
+  .pdist{font-size:14px;font-weight:600}
+</style>

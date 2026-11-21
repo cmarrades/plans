@@ -1,0 +1,101 @@
+---
+import PlanCard from './PlanCard.astro';
+import { loadAll, listUrl, cityUrl, totalFrom } from '../lib/plans';
+interface Props { cityId: string }
+const { cityId } = Astro.props;
+const { cities, categories, plans, countries } = await loadAll();
+const city = cities.find((c) => c.id === cityId)!;
+const country = countries.find((c) => c.id === city.country)!;
+const inCity = plans.filter((p) => p.bases.some((b) => b.city === city.id));
+const byCat = (id: string) => inCity
+  .filter((p) => p.category === id)
+  .sort((a, b) => (totalFrom(a, city.id)!.ride - totalFrom(b, city.id)!.ride));
+---
+<section class="hero band">
+  <div class="wrap hgrid">
+    <div>
+      <p class="kicker">Planes desde <b>{city.name}</b> · {country.name}</p>
+      <h1>Qué hacer este finde, a menos de una hora</h1>
+      <p class="lead">Rutas probadas con el recorrido completo desde donde salgas, mapa, dónde parar a almorzar y el GPX para la moto o el móvil.</p>
+      {cities.length > 1 && (
+        <label class="citysel">Ciudad
+          <select onchange="location.href=this.value">
+            {cities.map((c) => <option value={cityUrl(c.country, c.id)} selected={c.id === city.id}>{c.name}</option>)}
+          </select>
+        </label>
+      )}
+    </div>
+    <div class="signs" aria-hidden="true">
+      {categories.map((c) => (
+        <div class="sign" style={`--c:${c.color}`}>
+          <span class="arrow">→</span><span>{c.short}</span>
+          <span class="n">{c.status === 'active' ? byCat(c.id).length : '·'}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="cats">
+      {categories.map((c) => {
+        const list = byCat(c.id);
+        const active = c.status === 'active' && list.length > 0;
+        return active ? (
+          <a class="cat" href={listUrl(city.country, city.id, c.id)} style={`--c:${c.color}`}>
+            <span class="cbar"></span>
+            <h2>{c.name}</h2>
+            <p>{c.blurb}</p>
+            <span class="cmeta"><b>{list.length}</b> {list.length === 1 ? 'plan' : 'planes'} desde {city.name} →</span>
+          </a>
+        ) : (
+          <div class="cat soon" style={`--c:${c.color}`}>
+            <span class="cbar"></span>
+            <h2>{c.name}</h2>
+            <p>{c.blurb}</p>
+            <span class="cmeta">Próximamente</span>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>
+
+{categories.filter((c) => c.status === 'active' && byCat(c.id).length).map((c) => (
+  <section class="band" style="padding-top:0">
+    <div class="wrap">
+      <div class="shead">
+        <h2>{c.name}, de la más corta a la más larga</h2>
+        <a class="btn ghost" href={listUrl(city.country, city.id, c.id)}>Ver todas y filtrar</a>
+      </div>
+      <div class="pgrid">
+        {byCat(c.id).slice(0, 6).map((p) => <PlanCard plan={p} city={city.id} cityName={city.name} color={c.color} />)}
+      </div>
+    </div>
+  </section>
+))}
+
+<style>
+  .hero{background:var(--blue);color:#fff}
+  .hgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center}
+  .kicker{margin:0 0 10px;color:#cfe0f5;font-size:16px}
+  .lead{font-size:18px;color:#dbe7f6;max-width:36em;margin:14px 0 0}
+  .citysel{display:inline-flex;align-items:center;gap:10px;margin-top:20px;font-weight:600}
+  .signs{display:grid;gap:12px}
+  .sign{display:flex;align-items:center;gap:14px;background:#fff;color:#0d4c92;border-radius:12px;padding:14px 18px;font-weight:900;font-size:24px;box-shadow:0 6px 0 #0006;border-left:12px solid var(--c)}
+  .sign .arrow{color:var(--c);font-size:28px}
+  .sign .n{margin-left:auto;font-size:18px;color:#4f5d6e}
+  .cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px}
+  .cat{position:relative;display:flex;flex-direction:column;gap:8px;padding:22px 22px 20px;border-radius:16px;background:var(--panel);text-decoration:none;color:inherit;overflow:hidden;border:2px solid transparent}
+  a.cat:hover{border-color:var(--c)}
+  .cat h2{margin:0;font-size:28px}
+  .cat p{margin:0;color:var(--mute)}
+  .cbar{height:8px;width:56px;border-radius:4px;background:var(--c)}
+  .cmeta{margin-top:auto;padding-top:8px;font-weight:800;color:var(--c)}
+  .cat.soon{opacity:.75}.cat.soon .cmeta{color:var(--mute)}
+  .shead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .shead h2{margin:0}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:18px}
+  @media(max-width:760px){.hgrid{grid-template-columns:minmax(0,1fr)}.sign{font-size:20px}}
+</style>

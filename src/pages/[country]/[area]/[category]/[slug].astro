@@ -1,0 +1,355 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { loadAll, cityUrl, listUrl } from '../../../../lib/plans';
+
+export async function getStaticPaths() {
+  const { plans } = await loadAll();
+  return plans.map((p) => ({ params: { country: p.country, area: p.area, category: p.category, slug: p.slug }, props: { slug: p.slug } }));
+}
+const { slug } = Astro.props;
+const { plans, cities, categories } = await loadAll();
+const plan = plans.find((p) => p.slug === slug)!;
+const cat = categories.find((c) => c.id === plan.category)!;
+const baseCities = plan.bases.map((b) => ({ ...b, ...cities.find((c) => c.id === b.city)! }));
+const home = baseCities[0];
+const data = {
+  slug: plan.slug, title: plan.title, country: plan.country, mode: cat.travelMode,
+  stops: plan.stops, eats: plan.eats, approachEats: plan.approachEats,
+  bases: baseCities.map((b) => ({ id: b.id, name: b.name, lat: b.lat, lng: b.lng })),
+};
+---
+<Base title={`${plan.title} · ${cat.name}`} description={plan.summary}
+  crumbs={[{ label: home.name, href: cityUrl(home.country, home.id) }, { label: cat.name, href: listUrl(home.country, home.id, cat.id) }, { label: plan.title }]}>
+
+  <section class="dhead band" style={`--c:${cat.color}`}>
+    <div class="wrap">
+      <p class="area">{plan.areaName}</p>
+      <h1>{plan.title}</h1>
+      <p class="lead">{plan.summary}</p>
+      <div class="dtags">{plan.tags.map((t) => <span class="tag">{t}</span>)}</div>
+    </div>
+  </section>
+
+  <section class="origin band">
+    <div class="wrap ogrid">
+      <div class="ofrom">
+        <label for="from"><b>Salgo desde</b></label>
+        <div class="orow">
+          <select id="from">
+            {baseCities.map((b) => <option value={`city:${b.id}`}>{b.name}</option>)}
+            <option value="me">Mi ubicación actual</option>
+            <option value="addr">Otra dirección…</option>
+          </select>
+          <form id="addrform" class="addr" hidden>
+            <input type="text" id="addr" placeholder="Calle, pueblo o código postal" autocomplete="street-address" />
+            <button class="btn blue" type="submit">Usar</button>
+          </form>
+        </div>
+        <p class="omsg muted" id="omsg" aria-live="polite"></p>
+      </div>
+      <div class="totals" aria-live="polite">
+        <span class="hito"><b id="t-km">–</b><small>km en total</small></span>
+        <span class="hito"><b id="t-time">–</b><small>en moto</small></span>
+        <span class="hito"><b>{plan.stops.length}</b><small>paradas</small></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="band mapband">
+    <div class="wrap mgrid">
+      <div class="mapbox"><div id="map" role="img" aria-label="Mapa del recorrido"></div></div>
+      <div class="actions">
+        <h2>Llévatelo</h2>
+        <a class="btn red big" id="gm-full" href="#" target="_blank" rel="noopener">Abrir recorrido completo en Google Maps</a>
+        <p class="muted small">Desde tu salida, por todas las paradas en orden y vuelta. En Maps, activa «Evitar autopistas».</p>
+        <details class="tramos">
+          <summary>Si el móvil no acepta tantas paradas, ábrelo por tramos</summary>
+          <div id="gm-legs" class="legs"></div>
+        </details>
+        <button class="btn blue big" id="gpx" type="button">Descargar GPX</button>
+        <p class="muted small">Con el trazado completo para Calimoto, OsmAnd, Kurviger o el navegador de la moto.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="wrap rgrid">
+      <div>
+        <h2>Road book</h2>
+        <ol class="book" id="book">
+          {plan.stops.map((s) => (
+            <li><span class="hito"><b>–</b><small>km</small></span><div><h3>{s.name} <span class="kind">{s.kind}</span></h3>{s.note && <p class="muted">{s.note}</p>}</div></li>
+          ))}
+        </ol>
+      </div>
+      <div>
+        <h2>Antes de salir</h2>
+        {plan.tips.map((t) => <div class="tip"><h3>{t.t}</h3><p class="muted">{t.d}</p></div>)}
+      </div>
+    </div>
+  </section>
+
+  <section class="band eatband" id="comer">
+    <div class="wrap">
+      <h2>Dónde almorzar y comer</h2>
+      <p class="muted">Ordenado por el kilómetro en que te lo encuentras en tu recorrido. Toca uno y Google Maps te lleva.</p>
+      <div class="filters" role="group" aria-label="Filtrar sitios">
+        <button type="button" class="f on" data-f="">Todos</button>
+        <button type="button" class="f" data-f="almuerzo">Almorzar</button>
+        <button type="button" class="f" data-f="comida">Comer</button>
+        <button type="button" class="f" data-f="top">Imprescindibles</button>
+        <button type="button" class="f" data-f="near">Cerca de mí ahora</button>
+      </div>
+      <div class="eats" id="eats"></div>
+    </div>
+  </section>
+
+  <script type="application/json" id="plan-data" set:html={JSON.stringify(data)} />
+</Base>
+
+<style>
+  .dhead{background:var(--blue);color:#fff;border-bottom:10px solid var(--c)}
+  .area{margin:0 0 8px;color:#cfe0f5;font-weight:600}
+  .lead{font-size:18px;color:#dbe7f6;max-width:44em;margin:14px 0 16px}
+  .dtags{display:flex;flex-wrap:wrap;gap:6px}
+  .dtags .tag{background:#ffffff22;color:#fff}
+  .origin{background:var(--panel);padding-block:22px}
+  .ogrid{display:flex;flex-wrap:wrap;gap:18px 32px;align-items:center;justify-content:space-between}
+  .ofrom{display:grid;gap:8px}
+  .orow{display:flex;flex-wrap:wrap;gap:10px}
+  .addr{display:flex;gap:8px;flex-wrap:wrap}.addr[hidden]{display:none}
+  .addr input{width:min(100%,320px)}
+  .omsg{margin:0;font-size:14.5px;min-height:1.4em}
+  .totals{display:flex;gap:14px;flex-wrap:wrap}
+  .totals .hito{min-width:96px}
+  .mgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+  .mapbox{border-radius:16px;overflow:hidden;border:2px solid var(--line);background:var(--panel)}
+  #map{height:clamp(340px,52vh,560px)}
+  .actions{display:flex;flex-direction:column;gap:10px}
+  .actions h2{margin-bottom:4px}
+  .big{min-height:54px;font-size:17px;text-align:center}
+  .small{font-size:14px;margin:0 0 10px}
+  .tramos summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+  .legs{display:grid;gap:8px;margin:6px 0 12px}
+  :global(.legs a){display:block;padding:10px 14px;border-radius:10px;background:var(--panel);text-decoration:none;font-weight:700}
+  .rgrid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:clamp(24px,4vw,56px)}
+  .book{list-style:none;margin:0;padding:0}
+  .book :global(li){display:grid;grid-template-columns:76px minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid var(--line);align-items:start}
+  .book :global(li .hito){min-width:64px}
+  .book :global(h3){display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+  .book :global(p){margin:4px 0 0}
+  .book :global(.t){font-size:14px;font-weight:600;color:var(--mute)}
+  :global(.kind){font-size:13px;font-weight:700;color:var(--mute);text-transform:none}
+  .tip{border-top:4px solid var(--blue2);padding-top:12px;margin-bottom:18px}
+  .tip p{margin:4px 0 0}
+  .eatband{background:var(--panel)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+  .f{min-height:44px;padding:8px 16px;border-radius:999px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:700 15px Overpass,sans-serif;cursor:pointer}
+  .f.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .eats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:14px}
+  @media(max-width:860px){.mgrid,.rgrid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<style is:global>
+  .eat{display:grid;grid-template-columns:70px minmax(0,1fr);gap:14px;background:var(--card);border-radius:14px;padding:16px;text-decoration:none;color:inherit;border:2px solid transparent}
+  .eat:hover{border-color:var(--red)}
+  .eat .hito{min-width:62px;align-self:start}
+  .eat h3{font-size:20px}
+  .eat .where{font-size:14px;color:var(--mute);margin:2px 0 6px}
+  .eat p{margin:0;font-size:15.5px}
+  .eat .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .eat .chip{font-size:13px;font-weight:700;border-radius:6px;padding:1px 8px;background:var(--panel)}
+  .eat .chip.t{background:var(--red);color:#fff}
+  .leaflet-container{font:14px Overpass,sans-serif}
+  .pin{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#fff;color:#0d4c92;border:3px solid #0d4c92;font-weight:900;font-size:13px;box-shadow:0 2px 6px #0005}
+  .pin.o{background:#d62f2f;border-color:#fff;color:#fff}
+  .pin.e{width:22px;height:22px;background:#d62f2f;border-color:#fff;color:#fff;font-size:11px}
+</style>
+
+<script>
+  import L from 'leaflet';
+  import 'leaflet/dist/leaflet.css';
+
+  type Pt = { lat: number; lng: number };
+  type Stop = Pt & { id: string; name: string; kind: string; maps: string; note?: string };
+  type Eat = { name: string; where: string; q: string; types: string[]; desc: string; top?: boolean; near?: string; lat?: number; lng?: number };
+  const P = JSON.parse(document.getElementById('plan-data')!.textContent!) as {
+    slug: string; title: string; country: string; mode: string; stops: Stop[]; eats: Eat[]; approachEats: Eat[];
+    bases: { id: string; name: string; lat: number; lng: number }[];
+  };
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const fmtMin = (m: number) => { const h = Math.floor(m / 60), r = Math.round(m % 60); return h ? (r ? `${h} h ${r}` : `${h} h`) : `${r} min`; };
+  const hav = (a: Pt, b: Pt) => { const r = (x: number) => x * Math.PI / 180, R = 6371;
+    const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h)); };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+  // ---------- Mapa ----------
+  const map = L.map('map', { scrollWheelZoom: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(map);
+  const layer = L.layerGroup().addTo(map);
+  const pin = (html: string, cls = '') => L.divIcon({ className: '', html: `<span class="pin ${cls}">${html}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+
+  // ---------- Estado ----------
+  let origin: Pt & { name: string } = { ...P.bases[0] };
+  let route: { geom: [number, number][]; cum: number[]; legKm: number[]; legMin: number[]; real: boolean } | null = null;
+  let eatFilter = '';
+  let me: Pt | null = null;
+
+  async function osrm(seq: Pt[], exclude: boolean) {
+    const profile = P.mode === 'walking' ? 'foot' : 'driving';
+    const coords = seq.map((p) => `${p.lng.toFixed(5)},${p.lat.toFixed(5)}`).join(';');
+    const u = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson${exclude ? '&exclude=motorway' : ''}`;
+    const r = await fetch(u); if (!r.ok) throw new Error('osrm ' + r.status);
+    const j = await r.json(); if (j.code !== 'Ok') throw new Error(j.code);
+    return j.routes[0];
+  }
+
+  async function compute() {
+    const seq: Pt[] = [origin, ...P.stops, origin];
+    $('omsg').textContent = 'Calculando el recorrido…';
+    try {
+      let r; try { r = await osrm(seq, true); } catch { r = await osrm(seq, false); }
+      const geom = r.geometry.coordinates.map(([x, y]: number[]) => [y, x]) as [number, number][];
+      const cum = [0]; for (let i = 1; i < geom.length; i++) cum.push(cum[i - 1] + hav({ lat: geom[i - 1][0], lng: geom[i - 1][1] }, { lat: geom[i][0], lng: geom[i][1] }));
+      route = { geom, cum, legKm: r.legs.map((l: any) => l.distance / 1000), legMin: r.legs.map((l: any) => l.duration / 60 * 1.1), real: true };
+      $('omsg').textContent = `Recorrido calculado por carreteras desde ${origin.name}, evitando autovías cuando se puede.`;
+    } catch {
+      const legKm = seq.slice(1).map((p, i) => hav(seq[i], p) * 1.3);
+      route = { geom: seq.map((p) => [p.lat, p.lng]), cum: [], legKm, legMin: legKm.map((k) => k / 50 * 60), real: false };
+      $('omsg').textContent = 'No he podido calcular las carreteras ahora mismo: distancias aproximadas.';
+    }
+    render();
+  }
+
+  // km acumulado en cada punto de la secuencia (0 = salida)
+  const atSeq = () => { const a = [0]; route!.legKm.forEach((k, i) => a.push(a[i] + k)); return a; };
+  const minSeq = () => { const a = [0]; route!.legMin.forEach((k, i) => a.push(a[i] + k)); return a; };
+
+  // km del recorrido más cercano a un punto (y a qué distancia queda)
+  function along(p: Pt) {
+    if (!route!.real) {
+      const seq: Pt[] = [origin, ...P.stops, origin]; const a = atSeq();
+      let best = 0, bd = Infinity; seq.forEach((q, i) => { const d = hav(p, q); if (d < bd) { bd = d; best = i; } });
+      return { km: a[best], off: bd };
+    }
+    let best = 0, bd = Infinity;
+    route!.geom.forEach(([la, ln], i) => { const d = hav(p, { lat: la, lng: ln }); if (d < bd) { bd = d; best = i; } });
+    return { km: route!.cum[best], off: bd };
+  }
+
+  function mapsDir(points: (Pt & { maps?: string })[]) {
+    const v = (p: Pt & { maps?: string }) => encodeURIComponent(p.maps ?? `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`);
+    const o = points[0], d = points[points.length - 1], w = points.slice(1, -1);
+    return `https://www.google.com/maps/dir/?api=1&travelmode=${P.mode === 'walking' ? 'walking' : 'driving'}&origin=${v(o)}&destination=${v(d)}` + (w.length ? `&waypoints=${w.map(v).join('%7C')}` : '');
+  }
+
+  function render() {
+    const a = atSeq(), m = minSeq();
+    const total = a[a.length - 1], tmin = m[m.length - 1];
+    $('t-km').textContent = String(Math.round(total));
+    $('t-time').textContent = fmtMin(tmin);
+
+    // Mapa
+    layer.clearLayers();
+    const line = L.polyline(route!.geom, { color: '#d62f2f', weight: 5, opacity: .9 }).addTo(layer);
+    L.marker([origin.lat, origin.lng], { icon: pin('S', 'o'), title: 'Salida' }).addTo(layer).bindPopup(`<b>Salida</b><br>${esc(origin.name)}`);
+    P.stops.forEach((s, i) => L.marker([s.lat, s.lng], { icon: pin(String(i + 1)) }).addTo(layer).bindPopup(`<b>${esc(s.name)}</b><br>${esc(s.note ?? '')}`));
+    map.fitBounds(line.getBounds(), { padding: [24, 24] });
+
+    // Road book
+    const rows = [`<li><span class="hito"><b>0</b><small>km</small></span><div><h3>Salida <span class="kind">${esc(origin.name)}</span></h3></div></li>`]
+      .concat(P.stops.map((s, i) => `<li><span class="hito"><b>${Math.round(a[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span></h3><div class="t">+${fmtMin(m[i + 1])} desde la salida</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}</div></li>`))
+      .concat(`<li><span class="hito"><b>${Math.round(total)}</b><small>km</small></span><div><h3>Llegada <span class="kind">${esc(origin.name)}</span></h3><div class="t">≈ ${fmtMin(tmin)} en total, sin paradas</div></div></li>`);
+    $('book').innerHTML = rows.join('');
+
+    // Google Maps
+    const pts = [{ ...origin, maps: undefined }, ...P.stops, { ...origin, maps: undefined }];
+    ($('gm-full') as HTMLAnchorElement).href = mapsDir(pts);
+    const legs: string[] = []; // tramos de máx. 3 paradas intermedias
+    for (let i = 0; i < pts.length - 1; i += 4) {
+      const chunk = pts.slice(i, i + 5);
+      legs.push(`<a href="${mapsDir(chunk)}" target="_blank" rel="noopener">Tramo ${legs.length + 1}: ${esc(i === 0 ? origin.name : (chunk[0] as Stop).name)} → ${esc(chunk[chunk.length - 1] === pts[pts.length - 1] ? origin.name : (chunk[chunk.length - 1] as Stop).name)}</a>`);
+    }
+    $('gm-legs').innerHTML = legs.join('');
+
+    renderEats();
+  }
+
+  function renderEats() {
+    const a = atSeq();
+    const idx = (id?: string) => P.stops.findIndex((s) => s.id === id);
+    let list = P.eats.map((e) => {
+      const i = idx(e.near); const s = P.stops[i];
+      return { ...e, km: i >= 0 ? a[i + 1] : along(e as Pt).km, pt: i >= 0 ? s : (e as Pt) };
+    });
+    // Sitios de la aproximación: solo si quedan a menos de 2 km de tu recorrido
+    P.approachEats.forEach((e) => { const r = along(e as Pt); if (r.off < 2) list.push({ ...e, km: r.km, pt: e as Pt }); });
+    if (eatFilter === 'near' && me) list = list.map((e) => ({ ...e, d: hav(me!, e.pt) * 1.3 })).sort((x: any, y: any) => x.d - y.d) as any;
+    else list.sort((x, y) => x.km - y.km);
+    if (eatFilter && eatFilter !== 'near') list = list.filter((e) => eatFilter === 'top' ? e.top : e.types.includes(eatFilter));
+    const tag: Record<string, string> = { almuerzo: 'Almorzar', comida: 'Comer' };
+    $('eats').innerHTML = list.map((e: any) => {
+      const left = eatFilter === 'near' && me ? `<b>${e.d < 1 ? '<1' : Math.round(e.d)}</b><small>km de ti</small>` : `<b>${Math.round(e.km)}</b><small>km ruta</small>`;
+      return `<a class="eat" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(e.q)}" target="_blank" rel="noopener"><span class="hito">${left}</span><div><h3>${esc(e.name)}</h3><div class="where">${esc(e.where)}</div><p>${esc(e.desc)}</p><div class="chips">${e.types.map((t: string) => `<span class="chip">${tag[t]}</span>`).join('')}${e.top ? '<span class="chip t">Imprescindible</span>' : ''}</div></div></a>`;
+    }).join('') || '<p class="muted">Nada con este filtro.</p>';
+  }
+
+  // ---------- GPX ----------
+  $('gpx').addEventListener('click', () => {
+    if (!route) return;
+    const x = (s: string) => esc(s);
+    const wpts = [{ ...origin, name: 'Salida: ' + origin.name }, ...P.stops].map((p) => `<wpt lat="${p.lat}" lon="${p.lng}"><name>${x(p.name)}</name></wpt>`).join('\n');
+    const trk = route.geom.map(([la, ln]) => `<trkpt lat="${la.toFixed(6)}" lon="${ln.toFixed(6)}"/>`).join('');
+    const rte = [origin, ...P.stops, origin].map((p: any) => `<rtept lat="${p.lat}" lon="${p.lng}"><name>${x(p.name)}</name></rtept>`).join('\n');
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Planes" xmlns="http://www.topografix.com/GPX/1/1">\n<metadata><name>${x(P.title)}</name></metadata>\n${wpts}\n<rte><name>${x(P.title)}</name>\n${rte}\n</rte>\n<trk><name>${x(P.title)}</name><trkseg>${trk}</trkseg></trk>\n</gpx>\n`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' }));
+    a.download = `${P.slug}.gpx`; document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---------- Salida ----------
+  const sel = $('from') as HTMLSelectElement;
+  const store = (v: string) => { try { localStorage.setItem('plans-origin', v); } catch {} };
+  function useMe() {
+    if (!navigator.geolocation) { $('omsg').textContent = 'Tu navegador no da la ubicación.'; return; }
+    $('omsg').textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition((p) => {
+      me = { lat: p.coords.latitude, lng: p.coords.longitude };
+      origin = { ...me, name: 'Tu ubicación' }; compute();
+    }, () => { $('omsg').textContent = 'No he podido obtener tu ubicación. Revisa el permiso del navegador.'; }, { timeout: 10000, maximumAge: 120000 });
+  }
+  sel.addEventListener('change', () => {
+    const v = sel.value; ($('addrform') as HTMLFormElement).hidden = v !== 'addr';
+    if (v.startsWith('city:')) { origin = { ...P.bases.find((b) => 'city:' + b.id === v)! }; store(v); compute(); }
+    else if (v === 'me') { store(v); useMe(); }
+    else ($('addr') as HTMLInputElement).focus();
+  });
+  $('addrform').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const q = ($('addr') as HTMLInputElement).value.trim(); if (!q) return;
+    $('omsg').textContent = 'Buscando la dirección…';
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=${P.country}&q=${encodeURIComponent(q)}`);
+      const j = await r.json();
+      if (!j.length) { $('omsg').textContent = 'No encuentro esa dirección. Prueba con pueblo y calle.'; return; }
+      origin = { lat: +j[0].lat, lng: +j[0].lon, name: q }; compute();
+    } catch { $('omsg').textContent = 'No he podido buscar la dirección ahora mismo.'; }
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.f').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.f').forEach((x) => x.classList.toggle('on', x === b));
+    eatFilter = b.dataset.f || '';
+    if (eatFilter === 'near' && !me) {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((p) => { me = { lat: p.coords.latitude, lng: p.coords.longitude }; renderEats(); }, () => {}, { timeout: 10000 });
+    }
+    renderEats();
+  }));
+
+  // Arranque: la última salida usada, o la primera ciudad base
+  let saved = ''; try { saved = localStorage.getItem('plans-origin') || ''; } catch {}
+  if (saved.startsWith('city:') && P.bases.some((b) => 'city:' + b.id === saved)) { sel.value = saved; origin = { ...P.bases.find((b) => 'city:' + b.id === saved)! }; }
+  else if (saved === 'me') { sel.value = 'me'; useMe(); }
+  compute();
+</script>

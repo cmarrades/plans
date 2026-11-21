@@ -1,0 +1,105 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import PlanCard from '../../../../components/PlanCard.astro';
+import { loadAll, cityUrl, totalFrom } from '../../../../lib/plans';
+
+export async function getStaticPaths() {
+  const { cities, categories } = await loadAll();
+  return cities.flatMap((c) =>
+    categories.filter((k) => k.status === 'active').map((k) => ({
+      params: { country: c.country, city: c.id, category: k.id },
+      props: { cityId: c.id, catId: k.id },
+    })));
+}
+const { cityId, catId } = Astro.props;
+const { cities, categories, plans } = await loadAll();
+const city = cities.find((c) => c.id === cityId)!;
+const cat = categories.find((c) => c.id === catId)!;
+const list = plans
+  .filter((p) => p.category === cat.id && p.bases.some((b) => b.city === city.id))
+  .sort((a, b) => totalFrom(a, city.id)!.ride - totalFrom(b, city.id)!.ride);
+---
+<Base title={`${cat.name} desde ${city.name}`} crumbs={[{ label: city.name, href: cityUrl(city.country, city.id) }, { label: cat.name }]}>
+  <section class="lhead band" style={`--c:${cat.color}`}>
+    <div class="wrap">
+      <h1>{cat.name} desde {city.name}</h1>
+      <p class="lead">{cat.blurb} Ordenadas por tiempo total, de la más corta a la más larga.</p>
+    </div>
+  </section>
+  <section class="band">
+    <div class="wrap">
+      <div class="bar">
+        <div class="filters" role="group" aria-label="Filtrar por duración">
+          <button type="button" class="f on" data-f="">Todas</button>
+          <button type="button" class="f" data-f="manana">Una mañana</button>
+          <button type="button" class="f" data-f="medio">Medio día</button>
+          <button type="button" class="f" data-f="dia">Día entero</button>
+        </div>
+        <div class="sorts">
+          <button type="button" class="btn red" id="near">Más cerca de mí</button>
+          <button type="button" class="btn ghost" id="bytime" hidden>Ordenar por tiempo</button>
+        </div>
+      </div>
+      <p class="msg muted" id="msg" aria-live="polite"></p>
+      <div class="pgrid" id="grid">
+        {list.map((p) => <PlanCard plan={p} city={city.id} cityName={city.name} color={cat.color} />)}
+      </div>
+      <p class="empty muted" id="empty" hidden>No hay planes de esta duración todavía.</p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .lhead{background:var(--blue);color:#fff;border-bottom:10px solid var(--c)}
+  .lead{font-size:18px;color:#dbe7f6;max-width:40em;margin:12px 0 0}
+  .bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
+  .filters,.sorts{display:flex;flex-wrap:wrap;gap:8px}
+  .f{min-height:44px;padding:8px 16px;border-radius:999px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:700 15px Overpass,sans-serif;cursor:pointer}
+  .f.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .msg{min-height:1.5em;margin:6px 0 14px;font-size:15px}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:18px}
+</style>
+
+<script>
+  const grid = document.getElementById('grid')!;
+  const cards = [...grid.querySelectorAll<HTMLAnchorElement>('.pcard')];
+  const msg = document.getElementById('msg')!;
+  const empty = document.getElementById('empty')!;
+  const byTimeBtn = document.getElementById('bytime')!;
+  let filter = '';
+  const apply = () => {
+    let n = 0;
+    cards.forEach((c) => { const ok = !filter || c.dataset.bucket === filter; c.hidden = !ok; if (ok) n++; });
+    empty.hidden = n > 0;
+  };
+  document.querySelectorAll<HTMLButtonElement>('.f').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.f').forEach((x) => x.classList.toggle('on', x === b));
+    filter = b.dataset.f || ''; apply();
+  }));
+  const km = (a: number[], b: number[]) => {
+    const r = (x: number) => x * Math.PI / 180, R = 6371;
+    const h = Math.sin(r(b[0] - a[0]) / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(r(b[1] - a[1]) / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+  document.getElementById('near')!.addEventListener('click', () => {
+    if (!navigator.geolocation) { msg.textContent = 'Tu navegador no da la ubicación.'; return; }
+    msg.textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const me = [pos.coords.latitude, pos.coords.longitude];
+      cards.map((c) => {
+        const d = km(me, [+c.dataset.lat!, +c.dataset.lng!]) * 1.3;
+        const el = c.querySelector<HTMLElement>('.pdist')!; el.hidden = false;
+        el.textContent = `Empieza a unos ${Math.round(d)} km de ti`;
+        return { c, d };
+      }).sort((a, b) => a.d - b.d).forEach(({ c }) => grid.appendChild(c));
+      msg.textContent = 'Ordenadas por distancia desde tu ubicación hasta el inicio de cada ruta.';
+      byTimeBtn.hidden = false;
+    }, () => { msg.textContent = 'No he podido obtener tu ubicación. Revisa el permiso del navegador.'; }, { timeout: 10000, maximumAge: 120000 });
+  });
+  byTimeBtn.addEventListener('click', () => {
+    cards.slice().sort((a, b) => +a.dataset.total! - +b.dataset.total!).forEach((c) => {
+      grid.appendChild(c); c.querySelector<HTMLElement>('.pdist')!.hidden = true;
+    });
+    msg.textContent = ''; byTimeBtn.hidden = true;
+  });
+</script>

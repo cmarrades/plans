@@ -1,0 +1,30 @@
+{
+  "slug": "barx-valldigna",
+  "country": "es",
+  "area": "valldigna",
+  "areaName": "La Valldigna y la Safor",
+  "category": "moto",
+  "title": "Valldigna, puerto de Barx y La Drova",
+  "summary": "Entre naranjos hasta el monasterio de la Valldigna, subida de curvas al puerto de Barx con el valle y el mar a tus pies, y bajada por La Drova hacia Gandia.",
+  "tags": ["Curvas", "Vistas al mar", "Monasterio"],
+  "core": { "km": 38, "minutes": 60 },
+  "bases": [{ "city": "valencia", "minutes": 45, "km": 55 }],
+  "stops": [
+    { "id": "tavernes", "name": "Tavernes de la Valldigna", "kind": "Pueblo", "lat": 39.0717, "lng": -0.2667, "maps": "Tavernes de la Valldigna", "note": "Entrada al valle, entre naranjos." },
+    { "id": "monasterio", "name": "Monasterio de Santa María de la Valldigna", "kind": "Monumento", "lat": 39.0333, "lng": -0.3167, "maps": "Real Monasterio de Santa María de la Valldigna, Simat", "note": "Monasterio cisterciense fundado en 1298. Visitas guiadas gratuitas los fines de semana por la mañana." },
+    { "id": "visteta", "name": "Mirador de La Visteta", "kind": "Mirador", "lat": 39.0285, "lng": -0.305, "maps": "Mirador La Visteta, Barx", "note": "A media subida del puerto: vistas a Simat y a la playa de Tavernes." },
+    { "id": "barx", "name": "Barx", "kind": "Pueblo", "lat": 39.0175, "lng": -0.3033, "maps": "Barx, Valencia", "note": "Pueblo de montaña tras el puerto. Plaza con terrazas." },
+    { "id": "drova", "name": "Puerto de La Drova", "kind": "Puerto", "lat": 39.0005, "lng": -0.2705, "maps": "Port de la Drova, Barx", "note": "Bajada larga de curvas suaves hacia Gandia." },
+    { "id": "gandia", "name": "Gandia", "kind": "Ciudad", "lat": 38.968, "lng": -0.181, "maps": "Gandia", "note": "Final de la parte bonita. Desde aquí, vuelta." }
+  ],
+  "eats": [
+    { "name": "Restaurante Puigmola", "where": "Barx", "near": "barx", "q": "Restaurante Puigmola, Barx", "types": ["comida"], "top": true, "desc": "Restaurante de toda la vida, famoso por sus arroces y paellas. Muy concurrido: reserva." },
+    { "name": "Parpalló", "where": "Barx", "near": "barx", "q": "Restaurante Parpalló, Barx", "types": ["comida"], "desc": "Un clásico por su paella valenciana y sus croquetas. Conviene reservar." },
+    { "name": "Bar Restaurante La Font", "where": "C/ Major, 1 · Barx", "near": "barx", "q": "Bar Restaurante La Font, Barx", "types": ["almuerzo", "comida"], "desc": "En la plaza del pueblo, con mucha terraza. Tapas sencillas, pizza al horno de piedra y buen precio." }
+  ],
+  "tips": [
+    { "t": "Visita al monasterio", "d": "Las visitas guiadas gratuitas son sábados y domingos por la mañana: cuadra la hora de salida si quieres entrar." },
+    { "t": "Ciclistas", "d": "El puerto de Barx y La Drova son clásicos ciclistas: mucho tráfico de bicis el fin de semana." },
+    { "t": "Vuelta", "d": "Desde Gandia la vuelta más rápida es por autovía; si prefieres curvas, deshaz el camino por Barx." }
+  ]
+}
