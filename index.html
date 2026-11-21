@@ -1,6 +1,303 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Planes</title>
-<style>body{font:17px/1.5 system-ui,sans-serif;max-width:640px;margin:48px auto;padding:0 20px;color:#14211b}a{color:#1d4a37;font-weight:600}li{margin:10px 0}</style>
-</head><body><h1>Planes</h1><ul>
-<li><a href="ruta-moto-calderona/">Ruta en moto: Valencia · Serra · Oronet · Garbí</a></li>
-</ul></body></html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ruta moto Calderona</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: directo, de motero a motero, práctico para mirar en el móvil antes de arrancar
+IDEA: una hoja de ruta de rally / road book: mapa trazado y lista de pasos numerados por km
+PICTURE: mapa esquemático de la Calderona con el trazado de ida y vuelta, picos marcados
+COLOUR and TYPE: verde pino profundo dominante, blanco, naranja atardecer del Garbí como acento; Barlow Condensed (rotulación de carretera) + Barlow
+LAYOUT: cabecera verde con mapa grande y botones de Google Maps; debajo road book, paradas y consejos
+*/
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0f1a15);--ink:light-dark(#14211b,#e9efe9);--mute:light-dark(#4d5e55,#a9b8ae);--pine:light-dark(#1d4a37,#16352a);--pine2:light-dark(#2c6a50,#285c46);--sun:#ef6a2a;--line:light-dark(#dfe6e1,#25362d);--panel:light-dark(#f2f6f3,#15241d)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.55 Barlow,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Barlow Condensed",Barlow,sans-serif;line-height:1.05;text-wrap:balance;margin:0}
+h1{font-size:clamp(36px,6vw,52px)}h2{font-size:32px;margin-bottom:16px}h3{font-size:22px}
+.band{padding:clamp(28px,4vw,64px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.hero{background:var(--pine);color:#fff}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(24px,4vw,56px);align-items:center}
+.lead{font-size:18px;color:#d6e6dc;max-width:34em;margin:14px 0 22px}
+.stats{display:flex;flex-wrap:wrap;gap:10px 28px;margin:0 0 26px;padding:0;list-style:none}
+.stats b{display:block;font:700 30px/1 "Barlow Condensed",sans-serif;white-space:nowrap}
+.stats span{font-size:14px;color:#bcd3c5}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:12px 20px;border-radius:12px;font-weight:600;text-decoration:none;border:0;cursor:pointer;font:600 16px Barlow,sans-serif}
+.btn.go{background:var(--sun);color:#1a0d05}
+.btn.alt{background:#ffffff1f;color:#fff;box-shadow:inset 0 0 0 1.5px #ffffff55}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.note{font-size:14px;color:#bcd3c5;margin-top:14px}
+.map{background:var(--pine2);border-radius:20px;padding:10px;box-shadow:0 20px 40px -20px #0008}
+.map svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:#d6e6dc;padding:6px 10px 4px}
+.legend i{display:inline-block;width:26px;height:0;border-top:4px solid var(--sun);vertical-align:middle;margin-right:6px}
+.legend i.v{border-top:4px dashed #fff}
+.grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(24px,4vw,56px)}
+.book{list-style:none;margin:0;padding:0;counter-reset:s}
+.book li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.book .km{font:700 24px/1 "Barlow Condensed",sans-serif;color:var(--sun);white-space:nowrap;text-align:right;padding-top:2px}
+.book .km small{display:block;font:500 13px Barlow,sans-serif;color:var(--mute)}
+.book b{font-weight:600}
+.book p{margin:2px 0 0;color:var(--mute)}
+.stop{background:var(--panel);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.stop p{margin:6px 0 0;color:var(--mute)}
+.tag{display:inline-block;font-size:13px;font-weight:600;background:var(--sun);color:#1a0d05;border-radius:6px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px;margin-top:8px}
+.tip{border-top:3px solid var(--pine2);padding-top:12px}
+.tip p{margin:4px 0 0;color:var(--mute)}
+.gpx{background:var(--panel);border-radius:14px;padding:20px;margin-top:8px}
+.gpx .btn{background:var(--pine);color:#fff}
+.gpx ol{margin:10px 0 0;padding-left:20px;color:var(--mute)}
+.ok{font-size:14px;color:var(--pine2);margin-left:10px;font-weight:600}
+.eat{background:var(--panel)}
+.sub{color:var(--mute);margin:-6px 0 18px;max-width:46em}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.f{min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:600 15px Barlow,sans-serif;cursor:pointer}
+.f.on{background:var(--pine);border-color:var(--pine);color:#fff}
+.f:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.eats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.e{display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;background:var(--bg);border-radius:14px;padding:16px;text-decoration:none;color:inherit;border:1.5px solid transparent}
+.e:hover,.e:focus-visible{border-color:var(--sun);outline:none}
+.e .km{font:700 26px/1 "Barlow Condensed",sans-serif;color:var(--sun);text-align:right;white-space:nowrap}
+.e .km small{display:block;font:500 12px Barlow,sans-serif;color:var(--mute)}
+.e h3{font-size:21px}
+.e .where{font-size:14px;color:var(--mute);margin:2px 0 6px}
+.e p{margin:0;font-size:15.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:13px;font-weight:600;border-radius:6px;padding:1px 8px;background:var(--panel);color:var(--ink)}
+.chip.t{background:var(--sun);color:#1a0d05}
+.sort{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:18px}
+.btn.geo{background:var(--sun);color:#1a0d05}
+.btn.geo:focus-visible{outline:3px solid var(--pine);outline-offset:2px}
+.sort label{color:var(--mute);font-size:15px}
+.sort select{min-height:44px;font:500 16px Barlow,sans-serif;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.geomsg{font-size:14px;color:var(--mute);flex-basis:100%}
+.small{font-size:14px;color:var(--mute);margin-top:16px}
+footer{font-size:14px;color:var(--mute);border-top:1px solid var(--line)}
+@media(max-width:860px){.hero .wrap,.grid2{grid-template-columns:minmax(0,1fr)}.map{max-width:520px}}
+@media(prefers-reduced-motion:no-preference){.ida{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 2.4s ease-out .3s forwards}@keyframes draw{to{stroke-dashoffset:0}}}
+</style>
+</head>
+<body>
+
+<header class="band hero">
+  <div class="wrap">
+    <div>
+      <h1>Valencia · Serra · Oronet · Garbí</h1>
+      <p class="lead">Una vuelta en moto por la Serra Calderona. Subes a Serra, coronas el Oronet, asomas al mirador del Garbí con el mar delante y vuelves por la Cartuja de Portaceli y Olocau.</p>
+      <ul class="stats">
+        <li><b>≈ 100 km</b><span>vuelta completa</span></li>
+        <li><b>≈ 2 h 15</b><span>en moto, sin paradas</span></li>
+        <li><b>593 m</b><span>altura del Garbí</span></li>
+      </ul>
+      <div class="btns">
+        <a class="btn go" id="lnk-ida" href="#">▶ Ida en Google Maps</a>
+        <a class="btn alt" id="lnk-vuelta" href="#">Vuelta en Google Maps</a>
+        <a class="btn alt" href="#comer">Dónde comer</a>
+      </div>
+      <p class="note">La ruta está partida en dos tramos para que Google Maps los abra bien en el móvil. En Maps, ve a Opciones de ruta y marca «Evitar autopistas».</p>
+    </div>
+    <figure class="map" style="margin:0">
+      <svg viewBox="0 0 360 600" role="img" aria-label="Mapa esquemático de la ruta">
+        <defs>
+          <radialGradient id="m" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#3f7d61"/><stop offset="1" stop-color="#2c6a50" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect width="360" height="600" fill="none"/>
+        <!-- sierra -->
+        <ellipse cx="190" cy="95" rx="190" ry="95" fill="url(#m)"/>
+        <g fill="#245a43" stroke="#4f9274" stroke-width="1.5">
+          <path d="M60 140 L95 70 L125 140Z"/><path d="M110 120 L150 40 L190 120Z"/><path d="M215 105 L250 50 L285 105Z"/><path d="M270 110 L305 58 L340 110Z"/><path d="M20 120 L48 72 L78 120Z"/>
+        </g>
+        <!-- mar -->
+        <path d="M340 160 Q350 380 330 600 L360 600 L360 160Z" fill="#3c86a6" opacity=".55"/>
+        <text x="345" y="420" fill="#d7ecf5" font-size="13" font-family="Barlow" transform="rotate(90 345 420)">Mediterráneo</text>
+        <!-- vuelta -->
+        <polyline points="306,81 252,75 205,117 141,136 51,85 154,317 285,577" fill="none" stroke="#fff" stroke-width="3.5" stroke-dasharray="8 7" stroke-linejoin="round" opacity=".9"/>
+        <!-- ida -->
+        <polyline class="ida" points="285,577 154,317 210,179 205,117 252,75 306,81" fill="none" stroke="#ef6a2a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <g font-family="Barlow" font-size="14" font-weight="600" fill="#fff">
+          <circle cx="285" cy="577" r="8" fill="#ef6a2a" stroke="#fff" stroke-width="2.5"/><text x="240" y="565">Valencia</text>
+          <circle cx="154" cy="317" r="6" fill="#fff"/><text x="166" y="322">Bétera</text>
+          <circle cx="210" cy="179" r="6" fill="#fff"/><text x="222" y="184">Náquera</text>
+          <circle cx="205" cy="117" r="7" fill="#ef6a2a" stroke="#fff" stroke-width="2"/><text x="178" y="152">Serra</text>
+          <circle cx="252" cy="75" r="6" fill="#fff"/><text x="214" y="26">Oronet</text>
+          <path d="M296 70 L306 52 L316 70Z" fill="#ef6a2a" stroke="#fff" stroke-width="2"/><text x="286" y="104">Garbí</text>
+          <circle cx="141" cy="136" r="6" fill="#fff"/><text x="70" y="170">Portaceli</text>
+          <circle cx="51" cy="85" r="6" fill="#fff"/><text x="22" y="62">Olocau</text>
+        </g>
+      </svg>
+      <figcaption class="legend"><span><i></i>Ida</span><span><i class="v"></i>Vuelta</span><span>Esquema orientativo, no a escala exacta</span></figcaption>
+    </figure>
+  </div>
+</header>
+
+<main>
+<section class="band">
+  <div class="wrap grid2">
+    <div>
+      <h2>Road book</h2>
+      <ol class="book" id="book"></ol>
+    </div>
+    <div>
+      <h2>Dónde parar</h2>
+      <div id="stops"></div>
+    </div>
+  </div>
+</section>
+
+<section class="band eat" id="comer">
+  <div class="wrap">
+    <h2>Dónde almorzar y comer</h2>
+    <p class="sub">Ordenado por kilómetro de la ruta. Toca un sitio y Google Maps te lleva hasta él desde donde estés. En fin de semana conviene reservar o llegar pronto.</p>
+    <div class="filters" role="group" aria-label="Filtrar sitios">
+      <button type="button" class="f on" data-f="todos">Todos</button>
+      <button type="button" class="f" data-f="almuerzo">Almorzar</button>
+      <button type="button" class="f" data-f="comida">Comer</button>
+      <button type="button" class="f" data-f="top">Los imprescindibles</button>
+    </div>
+    <div class="sort">
+      <button type="button" class="btn geo" id="geo">Ordenar por cercanía a mí</button>
+      <label for="from">o estoy en</label>
+      <select id="from">
+        <option value="">Orden de la ruta</option>
+      </select>
+      <span class="geomsg" id="geomsg" aria-live="polite"></span>
+    </div>
+    <div class="eats" id="eats"></div>
+    <p class="small">Datos sacados de guías y reseñas online. Los horarios cambian: confírmalos antes, sobre todo si vas por la tarde.</p>
+  </div>
+</section>
+
+<section class="band" style="padding-top:0">
+  <div class="wrap">
+    <h2>Antes de salir</h2>
+    <div class="tips" id="tips"></div>
+
+    <div class="gpx">
+      <h3>Llevar la ruta en el GPS o en una app de moto</h3>
+      <p style="margin:6px 0 12px;color:var(--mute)">Descarga el archivo <b>ruta-calderona.gpx</b>. Ábrelo con Calimoto, OsmAnd, Kurviger o el navegador de la moto. Si no lo tienes a mano, cópialo desde aquí:</p>
+      <a class="btn" href="ruta-calderona.gpx" download>Descargar GPX</a> <button class="btn" id="copy-gpx" type="button">Copiar GPX</button><span class="ok" id="ok" aria-live="polite"></span>
+      <ol>
+        <li>Pégalo en un archivo de texto y guárdalo como <code>ruta.gpx</code>.</li>
+        <li>Para verlo en Google Maps en el móvil, impórtalo en Google My Maps (mymaps.google.com, opción «Importar») y aparecerá en Maps, en Tú → Mapas.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="band"><div class="wrap">Distancias y tiempos aproximados. Las coordenadas del GPX son orientativas: para navegar paso a paso, mejor usa los botones de Google Maps.</div></footer>
+
+<script>
+{
+const enc = a => a.map(encodeURIComponent);
+const ida = {o:"Valencia", d:"Mirador del Garbí, Estivella", w:["Bétera","Serra, Valencia","Port de l'Oronet, Serra"]};
+const vuelta = {o:"Mirador del Garbí, Estivella", d:"Valencia", w:["Serra, Valencia","Cartuja de Portaceli, Serra","Olocau, Valencia"]};
+const url = r => "https://www.google.com/maps/dir/?api=1&travelmode=driving&origin="+encodeURIComponent(r.o)+"&destination="+encodeURIComponent(r.d)+"&waypoints="+enc(r.w).join("%7C");
+document.getElementById("lnk-ida").href = url(ida);
+document.getElementById("lnk-vuelta").href = url(vuelta);
+
+const book = [
+ ["0","Valencia","Sal hacia Bétera por la CV-310 o la CV-35. Es el único tramo rápido del día."],
+ ["20","Bétera","Sigue hacia Náquera. Aquí empieza a aparecer el pinar."],
+ ["28","Náquera","Continúa hacia Serra, con las primeras curvas y la sierra delante."],
+ ["33","Serra","Parada para el café. Después sigue las indicaciones de Port de l'Oronet."],
+ ["39","Puerto del Oronet","Subida de curvas enlazadas con buen asfalto. En lo alto, desvío a la derecha hacia el Garbí."],
+ ["44","Mirador del Garbí","Aparcas al final de la carretera y caminas unos 15 minutos hasta el mirador. Tramo estrecho y sin quitamiedos en partes."],
+ ["55","Serra (bajada)","Deshaces el Oronet y en Serra tomas dirección Portaceli y Olocau."],
+ ["60","Cartuja de Portaceli","Monasterio entre pinos. La carretera, de curvas suaves, es de lo más bonito de la vuelta."],
+ ["68","Olocau","Pueblo de la Calderona. Desde aquí, regreso hacia Bétera."],
+ ["≈100","Valencia","Fin de la vuelta."]
+];
+document.getElementById("book").innerHTML = book.map(([k,t,d])=>`<li><div class="km">${k}<small>km</small></div><div><b>${t}</b><p>${d}</p></div></li>`).join("");
+
+const stops = [
+ ["Serra","Almuerzo","Pueblo tranquilo en plena sierra, buen sitio para el café o el almuerzo de antes de subir. El Bar Jubilats (C/ del Carreró, 17) tiene terraza."],
+ ["Mirador del Garbí","Imprescindible","Desde el balcón se ve la costa, la huerta y el golfo de Valencia. Junto al mirador está la ermita de la Santa Creu. Al atardecer es espectacular."],
+ ["Font de l'Oronet","","Fuente en la subida del Oronet, al lado de Serra. Buen sitio para estirar las piernas."],
+ ["Cartuja de Portaceli","","Monasterio cartujo de clausura: se ve por fuera, en un entorno muy bonito. Merece una parada para la foto."]
+];
+document.getElementById("stops").innerHTML = stops.map(([t,g,d])=>`<div class="stop"><h3>${t}${g?`<span class="tag">${g}</span>`:""}</h3><p>${d}</p></div>`).join("");
+
+const eats = [
+ {km:"20",n:"Bar Restaurant Ca Serruch",w:"Bétera",q:"Bar Restaurant Ca Serruch, Bétera",t:["almuerzo"],d:"Bar de pueblo de toda la vida, con almuerzos de tenedor y cuchara. Buena primera parada si sales temprano."},
+ {km:"28",n:"Asador El Pastoret",w:"Náquera · C/ Pi del Salt, 10",q:"Asador El Pastoret, Náquera",t:["almuerzo","comida","top"],d:"Premio Cacau d'Or 2018 al mejor esmorzaret y lugar de peregrinación de ciclistas. Bocatas XXL para almorzar y brasa para comer."},
+ {km:"28",n:"A Mos Redó",w:"Náquera",q:"A Mos Redó, Náquera",t:["almuerzo"],d:"Bocatas especiales muy bien valorados. Conviene reservar."},
+ {km:"33",n:"Bar Jubilats",w:"Serra · C/ del Carreró, 17",q:"Jubilats Serra, Carrer del Carreró 17, Serra",t:["almuerzo"],d:"Bar con terraza en el centro de Serra, para un café rápido antes de subir el Oronet."},
+ {km:"33",n:"Bar Restaurante Descanso",w:"Serra · C/ de Sagunt, 29",q:"Bar Restaurante Descanso, Serra",t:["comida","almuerzo"],d:"Cocina valenciana tradicional a buen precio: paella a la leña, bravas y postres caseros."},
+ {km:"33",n:"Casa Granero",w:"Serra · C/ Canto Torre, 9",q:"Restaurante Casa Granero, Serra",t:["comida"],d:"Le premiaron el puchero valenciano. Ideal para comer de cuchara en noviembre."},
+ {km:"33",n:"La Garrofera",w:"Serra",q:"La Garrofera, Serra",t:["comida"],d:"Restaurante con muy buenas reseñas y buena relación calidad/precio para comer en Serra."},
+ {km:"42",n:"Restaurante El Chaparral",w:"Ctra. Barraix–Garbí, km 2,2",q:"Restaurante El Chaparral, Serra",t:["almuerzo","comida","top"],d:"En plena carretera del Garbí, con ciclistas y motoristas como clientela habitual. Ganó el Cacau d'Or 2018. La parada más motera de la ruta."},
+ {km:"68",n:"Hostal Restaurant l'Arquet",w:"Olocau",q:"Hostal Restaurant l'Arquet, Olocau",t:["almuerzo","comida","top"],d:"Bien valorado para almorzar después de la ruta, con trato amable y buen precio. No te vayas sin probar la crema valenciana."},
+ {km:"68",n:"El Tapeo de Vignolo",w:"Olocau",q:"El Tapeo de Vignolo, Olocau",t:["almuerzo","comida"],d:"Muy buenos almuerzos, con tortilla de patatas hecha al momento. Tiene mucho sitio para aparcar."}
+];
+// coordenadas aproximadas (centro del pueblo o del paraje)
+const town = {"Bétera":[39.5913,-0.4618],"Náquera":[39.6560,-0.4255],"Serra":[39.6848,-0.4287],"Olocau":[39.6995,-0.5295]};
+const ll = {"Bar Restaurant Ca Serruch":town["Bétera"],"Asador El Pastoret":town["Náquera"],"A Mos Redó":town["Náquera"],"Bar Jubilats":town["Serra"],"Bar Restaurante Descanso":town["Serra"],"Casa Granero":town["Serra"],"La Garrofera":town["Serra"],"Restaurante El Chaparral":[39.7030,-0.3760],"Hostal Restaurant l'Arquet":town["Olocau"],"El Tapeo de Vignolo":town["Olocau"]};
+eats.forEach(e => e.ll = ll[e.n]);
+const places = [["Valencia",39.4699,-0.3763],["Bétera",39.5913,-0.4618],["Náquera",39.6560,-0.4255],["Serra",39.6848,-0.4287],["Puerto del Oronet",39.7045,-0.3975],["Mirador del Garbí",39.7015,-0.3625],["Cartuja de Portaceli",39.6760,-0.4705],["Olocau",39.6995,-0.5295]];
+const fromSel = document.getElementById("from");
+fromSel.insertAdjacentHTML("beforeend", places.map(([n],i)=>`<option value="${i}">${n}</option>`).join(""));
+const dist = (a,b) => { const R=6371, r=x=>x*Math.PI/180, dLa=r(b[0]-a[0]), dLo=r(b[1]-a[1]);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); };
+let origin = null, filter = "todos";
+const tagName = {almuerzo:"Almorzar",comida:"Comer",top:"Imprescindible"};
+const eatsEl = document.getElementById("eats");
+const renderEats = () => {
+  let list = eats.filter(e => filter==="todos" || e.t.includes(filter));
+  if (origin) list = list.map(e => ({...e, d0: dist(origin, e.ll) * 1.3})).sort((a,b)=>a.d0-b.d0); // ×1.3: carretera vs línea recta
+  eatsEl.innerHTML = list.map(e => {
+    const left = origin ? `${e.d0<1?"<1":Math.round(e.d0)}<small>km de ti</small>` : `${e.km}<small>km ruta</small>`;
+    return `<a class="e" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(e.q)}"><div class="km">${left}</div><div><h3>${e.n}</h3><div class="where">${e.w}</div><p>${e.d}</p><div class="chips">${e.t.map(t=>`<span class="chip${t==="top"?" t":""}">${tagName[t]}</span>`).join("")}</div></div></a>`;
+  }).join("");
+};
+renderEats();
+document.querySelectorAll(".f").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".f").forEach(x => x.classList.toggle("on", x===b));
+  filter = b.dataset.f; renderEats();
+}));
+const msg = document.getElementById("geomsg");
+fromSel.addEventListener("change", () => {
+  const p = places[fromSel.value]; origin = p ? [p[1],p[2]] : null;
+  msg.textContent = p ? `Ordenado por cercanía a ${p[0]} (distancia aproximada por carretera).` : "";
+  renderEats();
+});
+document.getElementById("geo").addEventListener("click", () => {
+  const fail = () => { msg.textContent = "No he podido obtener tu ubicación desde aquí. Elige en el desplegable dónde estás."; };
+  try {
+    if (!navigator.geolocation) return fail();
+    msg.textContent = "Buscando tu ubicación…";
+    navigator.geolocation.getCurrentPosition(pos => {
+      origin = [pos.coords.latitude, pos.coords.longitude]; fromSel.value = "";
+      msg.textContent = "Ordenado por cercanía a tu ubicación actual (distancia aproximada por carretera).";
+      renderEats();
+    }, fail, {enableHighAccuracy:false, timeout:10000, maximumAge:120000});
+  } catch(e){ fail(); }
+});
+
+const tips = [
+ ["Ciclistas","El Oronet y el Garbí están llenos de bicis los fines de semana por la mañana. Adelanta con calma, sobre todo en las curvas ciegas."],
+ ["Frío y humedad","En noviembre por la mañana hace fresco en la sierra y el asfalto puede estar húmedo en las curvas a la sombra. Lleva capa térmica."],
+ ["Parque natural","Toda la vuelta es Parque Natural de la Serra Calderona. Respeta los límites y no salgas de las carreteras asfaltadas."],
+ ["Evitar autovía","Al abrir los enlaces en Google Maps, activa «Evitar autopistas» para que la vuelta vaya por carreteras secundarias."]
+];
+document.getElementById("tips").innerHTML = tips.map(([t,d])=>`<div class="tip"><h3>${t}</h3><p>${d}</p></div>`).join("");
+
+const pts = [["Valencia",39.4699,-0.3763],["Bétera",39.5913,-0.4618],["Náquera",39.6560,-0.4255],["Serra",39.6848,-0.4287],["Port de l'Oronet",39.7045,-0.3975],["Mirador del Garbí",39.7015,-0.3625],["Serra",39.6848,-0.4287],["Cartuja de Portaceli",39.6760,-0.4705],["Olocau",39.6995,-0.5295],["Bétera",39.5913,-0.4618],["Valencia",39.4699,-0.3763]];
+const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Ruta Calderona" xmlns="http://www.topografix.com/GPX/1/1">\n<rte><name>Valencia - Serra - Oronet - Garbí</name>\n`+pts.map(([n,la,lo])=>`<rtept lat="${la}" lon="${lo}"><name>${n}</name></rtept>`).join("\n")+`\n</rte>\n</gpx>\n`;
+const ok = document.getElementById("ok");
+document.getElementById("copy-gpx").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(gpx); ok.textContent = "Copiado"; }
+  catch(e){ ok.textContent = "No se pudo copiar: usa el archivo del chat"; }
+});
+}
+</script>
+</body>
+</html>
