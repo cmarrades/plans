@@ -10,11 +10,11 @@
   "core": { "km": 45, "minutes": 70 },
   "bases": [{ "city": "valencia", "minutes": 35, "km": 33 }],
   "stops": [
-    { "id": "serra", "name": "Serra", "kind": "Pueblo", "lat": 39.6848, "lng": -0.4287, "maps": "Serra, Valencia", "note": "Pueblo de montaña. Café o almuerzo antes de subir." },
-    { "id": "oronet", "name": "Puerto del Oronet", "kind": "Puerto", "lat": 39.7045, "lng": -0.3975, "maps": "Port de l'Oronet, Serra", "note": "Curvas enlazadas con buen asfalto. Arriba, desvío hacia el Garbí." },
-    { "id": "garbi", "name": "Mirador del Garbí", "kind": "Mirador", "lat": 39.7015, "lng": -0.3625, "maps": "Mirador del Garbí, Estivella", "note": "Aparcas al final y caminas unos 15 min. Tramo estrecho y sin quitamiedos en partes." },
-    { "id": "portaceli", "name": "Cartuja de Portaceli", "kind": "Monumento", "lat": 39.676, "lng": -0.4705, "maps": "Cartuja de Portaceli, Serra", "note": "Monasterio cartujo de clausura entre pinos: se ve por fuera." },
-    { "id": "olocau", "name": "Olocau", "kind": "Pueblo", "lat": 39.6995, "lng": -0.5295, "maps": "Olocau, Valencia", "note": "Pueblo de la Calderona, buena parada para almorzar a la vuelta." }
+    { "id": "serra", "name": "Serra", "kind": "Pueblo", "prio": "good", "dwell": 10, "lat": 39.6848, "lng": -0.4287, "maps": "Serra, Valencia", "note": "Pueblo de montaña. Café o almuerzo antes de subir." },
+    { "id": "oronet", "name": "Puerto del Oronet", "kind": "Puerto", "prio": "must", "dwell": 5, "lat": 39.7045, "lng": -0.3975, "maps": "Port de l'Oronet, Serra", "note": "Curvas enlazadas con buen asfalto. Arriba, desvío hacia el Garbí." },
+    { "id": "garbi", "name": "Mirador del Garbí", "kind": "Mirador", "prio": "must", "dwell": 30, "lat": 39.7015, "lng": -0.3625, "maps": "Mirador del Garbí, Estivella", "note": "Aparcas al final y caminas unos 15 min. Tramo estrecho y sin quitamiedos en partes." },
+    { "id": "portaceli", "name": "Cartuja de Portaceli", "kind": "Monumento", "prio": "optional", "dwell": 5, "lat": 39.676, "lng": -0.4705, "maps": "Cartuja de Portaceli, Serra", "note": "Monasterio cartujo de clausura entre pinos: se ve por fuera." },
+    { "id": "olocau", "name": "Olocau", "kind": "Pueblo", "prio": "good", "dwell": 10, "lat": 39.6995, "lng": -0.5295, "maps": "Olocau, Valencia", "note": "Pueblo de la Calderona, buena parada para almorzar a la vuelta." }
   ],
   "eats": [
     { "name": "Bar Jubilats", "where": "C/ del Carreró, 17 · Serra", "near": "serra", "q": "Jubilats Serra, Carrer del Carreró 17, Serra", "types": ["almuerzo"], "desc": "Bar con terraza en el centro, para un café rápido antes del Oronet." },

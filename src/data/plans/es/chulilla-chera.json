@@ -10,10 +10,10 @@
   "core": { "km": 40, "minutes": 65 },
   "bases": [{ "city": "valencia", "minutes": 55, "km": 65 }],
   "stops": [
-    { "id": "losa", "name": "Losa del Obispo", "kind": "Pueblo", "lat": 39.6936, "lng": -0.868, "maps": "Losa del Obispo", "note": "Desde aquí empiezan los kilómetros buenos hacia Chulilla." },
-    { "id": "chulilla", "name": "Chulilla", "kind": "Pueblo", "lat": 39.6556, "lng": -0.8917, "maps": "Chulilla, Valencia", "note": "Pueblo blanco con castillo sobre el cañón. Los puentes colgantes, a pie desde el pueblo." },
-    { "id": "sot", "name": "Sot de Chera", "kind": "Pueblo", "lat": 39.6347, "lng": -0.9083, "maps": "Sot de Chera", "note": "Parque Natural y Geológico de Chera–Sot de Chera." },
-    { "id": "chera", "name": "Chera", "kind": "Pueblo", "lat": 39.5928, "lng": -0.9706, "maps": "Chera, Valencia", "note": "Final de la CV-395 de curvas. Vuelta por Requena (rápida) o deshaciendo (más curvas)." }
+    { "id": "losa", "name": "Losa del Obispo", "kind": "Pueblo", "prio": "optional", "dwell": 0, "lat": 39.6936, "lng": -0.868, "maps": "Losa del Obispo", "note": "Desde aquí empiezan los kilómetros buenos hacia Chulilla." },
+    { "id": "chulilla", "name": "Chulilla", "kind": "Pueblo", "prio": "must", "dwell": 45, "lat": 39.6556, "lng": -0.8917, "maps": "Chulilla, Valencia", "note": "Pueblo blanco con castillo sobre el cañón. Los puentes colgantes, a pie desde el pueblo." },
+    { "id": "sot", "name": "Sot de Chera", "kind": "Pueblo", "prio": "good", "dwell": 15, "lat": 39.6347, "lng": -0.9083, "maps": "Sot de Chera", "note": "Parque Natural y Geológico de Chera–Sot de Chera." },
+    { "id": "chera", "name": "Chera", "kind": "Pueblo", "prio": "good", "dwell": 5, "lat": 39.5928, "lng": -0.9706, "maps": "Chera, Valencia", "note": "Final de la CV-395 de curvas. Vuelta por Requena (rápida) o deshaciendo (más curvas)." }
   ],
   "eats": [
     { "name": "El Pozo Hostal Restaurante", "where": "Chulilla", "near": "chulilla", "q": "El Pozo Hostal Restaurante, Chulilla", "types": ["comida"], "top": true, "desc": "El mejor valorado del pueblo: trato cercano y familiar, y muy buena comida." },

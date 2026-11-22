@@ -49,6 +49,9 @@ const stop = z.object({
   lng: z.number(),
   maps: z.string(),
   note: z.string().optional(),
+  // Para «¿cuánto tiempo tienes?»: qué recortar primero y cuánto se suele parar
+  prio: z.enum(['must', 'good', 'optional']).default('good'),
+  dwell: z.number().default(10),
 });
 
 const eat = z.object({

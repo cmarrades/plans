@@ -74,13 +74,34 @@ const data = {
           <button class="btn ghost" id="trip-end" type="button">Terminar ruta</button>
         </div>
         <p class="tmsg" id="trip-msg" aria-live="polite"></p>
-        <div class="tnext">
-          <label for="trip-next"><b>Próxima parada</b></label>
+        <div class="ask" id="trip-ask" hidden>
+          <p id="trip-q"></p>
           <div class="orow">
-            <select id="trip-next"></select>
-            <button class="btn blue" id="trip-loc" type="button">Actualizar mi posición</button>
+            <button class="btn blue" id="ask-yes" type="button">Sí</button>
+            <button class="btn ghost" id="ask-no" type="button">No</button>
           </div>
         </div>
+        <div class="fix">
+          <button class="lnk" id="fix-ahead" type="button"></button>
+          <button class="lnk" id="fix-back" type="button"></button>
+          <button class="lnk" id="trip-loc" type="button">Actualizar mi posición</button>
+        </div>
+        <div class="budget">
+          <b>¿Cuánto tiempo tienes?</b>
+          <div class="filters" id="budget" role="group" aria-label="Tiempo disponible">
+            <button type="button" class="f on" data-b="none">Sin prisa</button>
+            <button type="button" class="f" data-b="60">1 h</button>
+            <button type="button" class="f" data-b="120">2 h</button>
+            <button type="button" class="f" data-b="180">3 h</button>
+            <button type="button" class="f" data-b="sun">Llegar de día</button>
+            <button type="button" class="f" data-b="until">Hasta las…</button>
+          </div>
+          <form class="orow" id="until-form" hidden>
+            <input type="time" id="until" aria-label="Tengo que estar en casa a las" />
+            <button class="btn blue" type="submit">Calcular</button>
+          </form>
+        </div>
+        <p class="plan" id="trip-plan" hidden></p>
         <div class="totals" aria-live="polite">
           <span class="hito"><b id="tr-km">–</b><small>km quedan</small></span>
           <span class="hito"><b id="tr-time">–</b><small>en moto</small></span>
@@ -88,6 +109,7 @@ const data = {
           <span class="hito"><b id="tr-stops">–</b><small>paradas</small></span>
         </div>
         <p class="sun" id="trip-sun" hidden></p>
+        <a class="eatpick" id="trip-eatpick" href="#" target="_blank" rel="noopener" hidden></a>
         <ol class="book" id="trip-list"></ol>
         <div class="tacts">
           <a class="btn red big" id="trip-gm" href="#" target="_blank" rel="noopener">Seguir ruta en Google Maps</a>
@@ -206,7 +228,19 @@ const data = {
   .thead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
   .thead h2{margin:0}
   .tmsg{margin:0;font-weight:600}
-  .tnext{display:grid;gap:8px}
+  .ask{padding:14px 16px;border-radius:12px;background:var(--panel);border-left:6px solid var(--blue2)}
+  .ask p{margin:0 0 10px;font-weight:700;font-size:17px}
+  .ask[hidden],.plan[hidden],.eatpick[hidden],#until-form[hidden],.lnk[hidden]{display:none}
+  .fix{display:flex;flex-wrap:wrap;gap:4px 18px}
+  .lnk{background:none;border:0;padding:6px 0;min-height:40px;font:700 15px Overpass,sans-serif;color:var(--blue2);text-decoration:underline;cursor:pointer}
+  .budget{display:grid;gap:4px}
+  .budget .filters{margin:6px 0 4px}
+  .plan{margin:0;padding:12px 14px;border-radius:10px;background:#e7f2e8;color:#1d4d22;font-weight:600}
+  .plan.warn{background:#fde8e8;color:#8a1414}
+  .eatpick{display:block;padding:12px 14px;border-radius:12px;border:2px solid var(--red);text-decoration:none;color:inherit;font-weight:600}
+  .eatpick b{color:var(--red)}
+  :global(.prio){font-size:12px;font-weight:800;border-radius:6px;padding:1px 7px;background:var(--panel);color:var(--mute)}
+  :global(.prio.must){background:var(--red);color:#fff}
   .sun{margin:0;padding:10px 14px;border-radius:10px;background:var(--panel);font-weight:600}
   .sun.warn{background:#fde8e8;color:#8a1414}
   .tacts{display:flex;flex-wrap:wrap;gap:10px}
@@ -238,7 +272,7 @@ const data = {
   import 'leaflet/dist/leaflet.css';
 
   type Pt = { lat: number; lng: number };
-  type Stop = Pt & { id: string; name: string; kind: string; maps: string; note?: string };
+  type Stop = Pt & { id: string; name: string; kind: string; maps: string; note?: string; prio?: 'must' | 'good' | 'optional'; dwell?: number };
   type Eat = { name: string; where: string; q: string; types: string[]; desc: string; top?: boolean; near?: string; lat?: number; lng?: number };
   const P = JSON.parse(document.getElementById('plan-data')!.textContent!) as {
     slug: string; title: string; country: string; mode: string; stops: Stop[]; eats: Eat[]; approachEats: Eat[];
@@ -250,6 +284,9 @@ const data = {
   const hav = (a: Pt, b: Pt) => { const r = (x: number) => x * Math.PI / 180, R = 6371;
     const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h)); };
+  const PRIO = { must: 'Imprescindible', good: '', optional: 'Si da tiempo' } as const;
+  const prioTag = (s: Stop) => { const k = s.prio ?? 'good'; return PRIO[k] ? ` <span class="prio ${k}">${PRIO[k]}</span>` : ''; };
+  const dwellTxt = (s: Stop) => (s.dwell ?? 10) >= 15 ? ` · parada ~${s.dwell} min` : '';
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
   // ---------- Mapa ----------
@@ -327,7 +364,7 @@ const data = {
 
     // Road book
     const rows = [`<li><span class="hito"><b>0</b><small>km</small></span><div><h3>Salida <span class="kind">${esc(origin.name)}</span></h3></div></li>`]
-      .concat(P.stops.map((s, i) => `<li><span class="hito"><b>${Math.round(a[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span></h3><div class="t">+${fmtMin(m[i + 1])} desde la salida</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}<button type="button" class="here" data-i="${i}">Estoy aquí: seguir desde esta parada</button></div></li>`))
+      .concat(P.stops.map((s, i) => `<li><span class="hito"><b>${Math.round(a[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span>${prioTag(s)}</h3><div class="t">+${fmtMin(m[i + 1])} desde la salida${dwellTxt(s)}</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}<button type="button" class="here" data-i="${i}">Estoy aquí: seguir desde esta parada</button></div></li>`))
       .concat(`<li><span class="hito"><b>${Math.round(total)}</b><small>km</small></span><div><h3>Llegada <span class="kind">${esc(origin.name)}</span></h3><div class="t">≈ ${fmtMin(tmin)} en total, sin paradas</div></div></li>`);
     $('book').innerHTML = rows.join('');
 
@@ -418,20 +455,30 @@ const data = {
 
   // ---------- En ruta: seguir desde donde estás ----------
   type Place = Pt & { name: string };
-  type Trip = { home: Place; from: Place; next: number; skip: string[]; t: number };
+  type Budget = { k: 'none' | 'min' | 'until' | 'sun'; key: string; label: string; at?: number };
+  type Trip = { home: Place; from: Place; next: number; skip: string[]; budget: Budget; t: number };
+  type Ask = { q: string; yes: number; no: number };
   const TKEY = 'plans-trip:' + P.slug, TMAX = 12 * 3600e3;
+  const NOB: Budget = { k: 'none', key: 'none', label: 'Sin prisa' };
+  const W = { must: 100, good: 30, optional: 8 } as const; // qué pesa cada parada al recortar
   let trip: Trip | null = null;
   let tripMsg = '';
+  let ask: Ask | null = null;
+  let lastRem: Stop[] = [];
   let tRoute: { key: string; geom: [number, number][]; legKm: number[]; legMin: number[]; real: boolean } | null = null;
+  let tMat: { key: string; min: number[][] } | null = null;
   let tSeq = 0;
 
   const saveTrip = () => { try { trip ? localStorage.setItem(TKEY, JSON.stringify({ ...trip, t: Date.now() })) : localStorage.removeItem(TKEY); } catch {} };
   const loadTrip = (): Trip | null => {
-    try { const t = JSON.parse(localStorage.getItem(TKEY) || 'null'); return t && Date.now() - t.t < TMAX && t.home && t.from ? t : null; } catch { return null; }
+    try { const t = JSON.parse(localStorage.getItem(TKEY) || 'null'); return t && Date.now() - t.t < TMAX && t.home && t.from ? { budget: NOB, skip: [], ...t } : null; } catch { return null; }
   };
-  const remaining = () => trip ? P.stops.slice(trip.next).filter((s) => !trip!.skip.includes(s.id)) : [];
-  const clock = (d: Date) => d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const clock = (d: Date | number) => new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const kmTxt = (k: number) => `${k < 10 ? k.toFixed(1).replace('.', ',') : Math.round(k)} km`;
   const defaultHome = (): Place => origin.name === 'Tu ubicación' ? { ...P.bases[0] } : { ...origin };
+  const stopMin = (s: Stop) => s.dwell ?? 10;
+  const nextName = (n: number, t: Trip) => n < P.stops.length ? P.stops[n].name : `la vuelta a ${t.home.name}`;
+  const keyOf = (pts: Pt[]) => JSON.stringify(pts.map((p) => [p.lat.toFixed(4), p.lng.toFixed(4)]));
 
   // Puesta de sol (ecuación del amanecer; ±2 min, suficiente para avisar)
   function sunset(d: Date, p: Pt): Date | null {
@@ -448,24 +495,56 @@ const data = {
     return new Date((jt + Math.acos(cw) / rad / 360 - 2440587.5) * 86400000);
   }
 
-  // ¿Por dónde vas? Te sitúa en el recorrido completo y deduce la próxima parada
-  function detect(p: Pt): { next: number; msg: string } | null {
+  // ¿Por dónde vas? Te reincorpora al punto más cercano del recorrido, sin preguntarte la parada
+  function locate(p: Pt, prior: Trip | null): { next: number; msg: string; ask?: Ask } {
     const near = P.stops.map((s, i) => ({ i, d: hav(p, s) })).sort((a, b) => a.d - b.d)[0];
-    if (near && near.d < 0.6) return { next: near.i + 1, msg: `Estás en ${P.stops[near.i].name}: te cuento lo que queda a partir de aquí.` };
-    if (!route) return null;
-    if (!route.real) {
-      if (!near || near.d > 3) return null;
-      return { next: near.i + 1, msg: `Te he situado cerca de ${P.stops[near.i].name}. Si no es así, cambia la próxima parada.` };
+    if (near.d < 0.6) return { next: near.i + 1, msg: `Estás en ${P.stops[near.i].name}: sigues desde aquí.` };
+    const pn = prior?.next;
+    if (!route || !route.real) {
+      const n = pn ?? near.i;
+      return { next: n, msg: `Te he situado cerca de ${P.stops[near.i].name}.`, ask: pn === undefined ? { q: `¿Ya has pasado por ${P.stops[near.i].name}?`, yes: near.i + 1, no: near.i } : undefined };
     }
     const g = route.geom, at = (k: number) => ({ lat: g[k][0], lng: g[k][1] });
     // índice de cada parada en el trazado, buscando siempre hacia delante
     const sIdx: number[] = []; let from = 0;
     P.stops.forEach((s) => { let b = from, bd = Infinity; for (let k = from; k < g.length; k++) { const d = hav(s, at(k)); if (d < bd) { bd = d; b = k; } } sIdx.push(b); from = b; });
-    let bi = 0, bd = Infinity; g.forEach((_, k) => { const d = hav(p, at(k)); if (d < bd) { bd = d; bi = k; } });
-    if (bd > 3) return null;
-    const next = sIdx.findIndex((k) => k > bi);
-    const n = next < 0 ? P.stops.length : next;
-    return { next: n, msg: `Te he situado en el recorrido, a ${bd < 0.5 ? 'pie de carretera' : `${bd.toFixed(1).replace('.', ',')} km de la ruta`}. Si no es así, cambia la próxima parada.` };
+    const nOf = (k: number) => { const n = sIdx.findIndex((x) => x > k); return n < 0 ? P.stops.length : n; };
+    const d = g.map((_, k) => hav(p, at(k)));
+    const bd = Math.min(...d), tol = Math.max(0.5, bd * 0.25);
+    // en rutas de ida y vuelta, el mismo tramo puede ser la ida o la vuelta: todas las opciones cercanas
+    const cn = [...new Set(d.flatMap((x, k) => x <= bd + tol ? [nOf(k)] : []))].sort((a, b) => a - b);
+    const next = pn !== undefined ? (cn.find((n) => n >= pn) ?? pn) : cn[0];
+    const where = bd < 0.5 ? 'Estás en la ruta' : bd < 3 ? `Estás a ${kmTxt(bd)} de la ruta` : `Estás a ${kmTxt(bd)} de la ruta: te llevo al punto más cercano para reincorporarte`;
+    const q = pn === undefined && cn.length > 1 ? { q: cn[1] === P.stops.length ? '¿Ya has hecho la ruta y estás volviendo a casa?' : `¿Ya has pasado por ${P.stops[cn[1] - 1].name}?`, yes: cn[1], no: cn[0] } : undefined;
+    return { next, msg: `${where}.`, ask: q };
+  }
+
+  async function osrmTable(pts: Pt[]): Promise<number[][]> {
+    const profile = P.mode === 'walking' ? 'foot' : 'driving';
+    const coords = pts.map((p) => `${p.lng.toFixed(5)},${p.lat.toFixed(5)}`).join(';');
+    const r = await fetch(`https://router.project-osrm.org/table/v1/${profile}/${coords}?annotations=duration`);
+    if (!r.ok) throw new Error('osrm ' + r.status);
+    const j = await r.json(); if (j.code !== 'Ok') throw new Error(j.code);
+    return j.durations.map((row: (number | null)[]) => row.map((x) => x == null ? Infinity : x / 60 * 1.1));
+  }
+
+  // Mejor combinación de paradas (en el orden de la ruta) que cabe en el tiempo disponible
+  function best(cand: Stop[], M: number[][], avail: number) {
+    const n = Math.min(cand.length, 12), H = cand.length + 1;
+    let bm = -1, bs = -1, bt = Infinity;
+    for (let mask = 0; mask < 1 << n; mask++) {
+      let prev = 0, t = 0, sc = 0;
+      for (let i = 0; i < n; i++) if (mask & (1 << i)) { t += M[prev][i + 1] + stopMin(cand[i]); sc += W[cand[i].prio ?? 'good']; prev = i + 1; }
+      t += M[prev][H];
+      if (t <= avail && (sc > bs || (sc === bs && t < bt))) { bs = sc; bt = t; bm = mask; }
+    }
+    return bm < 0 ? null : { keep: cand.filter((_, i) => bm & (1 << i)), min: bt };
+  }
+
+  function deadline(b: Budget, now: Date, at: Pt): Date | null {
+    if (b.k === 'min' || b.k === 'until') return new Date(b.at!);
+    if (b.k === 'sun') return sunset(now, at);
+    return null;
   }
 
   function showTripUI() {
@@ -481,11 +560,47 @@ const data = {
 
   async function renderTrip() {
     if (!trip) return;
-    const t = trip, rem = remaining();
-    const sel2 = $('trip-next') as HTMLSelectElement;
-    sel2.innerHTML = P.stops.map((s, i) => `<option value="${i}">${i + 1}. ${esc(s.name)}</option>`).join('') + `<option value="${P.stops.length}">Ninguna: solo volver a ${esc(t.home.name)}</option>`;
-    sel2.value = String(t.next);
-    $('trip-msg').textContent = tripMsg || `Siguiendo desde ${t.from.name}.`;
+    const t = trip, my = ++tSeq, now = new Date();
+
+    // Preguntas y correcciones (sin tener que saberte la ruta)
+    ($('trip-ask') as HTMLElement).hidden = !ask;
+    if (ask) $('trip-q').textContent = ask.q;
+    const fa = $('fix-ahead') as HTMLButtonElement, fb = $('fix-back') as HTMLButtonElement;
+    fa.hidden = t.next >= P.stops.length; if (!fa.hidden) fa.textContent = `Ya he pasado por ${P.stops[t.next].name}`;
+    fb.hidden = t.next === 0; if (!fb.hidden) fb.textContent = `Aún no he llegado a ${P.stops[t.next - 1].name}`;
+    document.querySelectorAll<HTMLButtonElement>('#budget .f').forEach((b) => b.classList.toggle('on', b.dataset.b === t.budget.key));
+    $('trip-msg').textContent = `${tripMsg || `Siguiendo desde ${t.from.name}.`} Próxima parada: ${nextName(t.next, t)}.`;
+
+    // ¿Qué cabe en el tiempo que tienes?
+    const cand = P.stops.slice(t.next).filter((s) => !t.skip.includes(s.id));
+    const dl = deadline(t.budget, now, t.from);
+    let rem = cand, note = '', warn = false;
+    const planEl = $('trip-plan') as HTMLElement;
+    if (dl) {
+      const pts: Pt[] = [t.from, ...cand, t.home], key = keyOf(pts);
+      if (!tMat || tMat.key !== key) {
+        planEl.hidden = false; planEl.classList.remove('warn'); planEl.textContent = 'Calculando qué te da tiempo a hacer…';
+        let M: number[][]; try { M = await osrmTable(pts); } catch { M = pts.map((a) => pts.map((b) => hav(a, b) * 1.3 / 50 * 60)); }
+        if (my !== tSeq || !trip) return;
+        tMat = { key, min: M };
+      }
+      const avail = (dl.getTime() - now.getTime()) / 60000;
+      const b = best(cand, tMat.min, avail);
+      const label = t.budget.k === 'sun' ? `Para llegar de día (anochece a las ${clock(dl)})` : t.budget.label;
+      if (!b) {
+        rem = []; warn = true;
+        const direct = tMat.min[0][cand.length + 1];
+        note = `${label} no da tiempo ni volviendo directo: vuelve ya y llegas hacia las ${clock(now.getTime() + direct * 60000)}, unos ${fmtMin(Math.max(1, direct - avail))} tarde.`;
+      } else {
+        rem = b.keep; const out = cand.filter((s) => !rem.includes(s));
+        if (!out.length) note = `${label} te da tiempo a todo lo que queda, y te sobran unos ${fmtMin(Math.max(0, avail - b.min))}.`;
+        else if (!rem.length) { note = `${label} solo da tiempo a volver: vuelve directo. Te saltas ${out.map((s) => s.name).join(', ')}.`; warn = true; }
+        else note = `${label}: ${rem.map((s) => s.name).join(' → ')} → ${t.home.name}. Te saltas ${out.map((s) => s.name).join(', ')}.`;
+      }
+    }
+    planEl.hidden = !dl; planEl.textContent = note; planEl.classList.toggle('warn', warn);
+    lastRem = rem;
+    const auto = cand.filter((s) => !rem.includes(s)).map((s) => s.id);
 
     // Google Maps: sin origen, así sale desde donde estés de verdad
     const gm = (pts: (Pt & { maps?: string })[]) => {
@@ -496,15 +611,14 @@ const data = {
     const homeP = { lat: t.home.lat, lng: t.home.lng };
     ($('trip-gm') as HTMLAnchorElement).href = gm([...rem, homeP]);
     const g1 = $('trip-gm1') as HTMLAnchorElement; g1.href = rem.length ? gm([rem[0]]) : '#'; g1.setAttribute('aria-disabled', String(!rem.length));
-    if (rem.length) g1.textContent = `Solo hasta ${rem[0].name}`;
+    g1.textContent = rem.length ? `Solo hasta ${rem[0].name}` : 'Solo hasta la próxima parada';
     ($('trip-home') as HTMLAnchorElement).href = gm([homeP]);
     const sk = $('trip-skip') as HTMLButtonElement; sk.disabled = !rem.length; sk.setAttribute('aria-disabled', String(!rem.length));
     sk.textContent = rem.length ? `Saltar ${rem[0].name}` : 'Saltar la siguiente parada';
 
     // Recorrido que queda (con caché para no recalcular lo mismo)
     const seq: Place[] = [t.from, ...rem, t.home];
-    const key = JSON.stringify(seq.map((p) => [p.lat.toFixed(4), p.lng.toFixed(4)]));
-    const my = ++tSeq;
+    const key = keyOf(seq);
     if (!tRoute || tRoute.key !== key) {
       $('tr-km').textContent = '…';
       try {
@@ -518,10 +632,13 @@ const data = {
     }
     const R = tRoute;
     const ak = [0], am = [0]; R.legKm.forEach((k, i) => { ak.push(ak[i] + k); am.push(am[i] + R.legMin[i]); });
-    const km = ak[ak.length - 1], min = am[am.length - 1];
-    const now = new Date(), eta = new Date(now.getTime() + min * 60000);
+    const km = ak[ak.length - 1], drive = am[am.length - 1];
+    const dwell = rem.reduce((a, s) => a + stopMin(s), 0);
+    // hora a la que llegas a cada parada, contando lo que paras en las anteriores
+    const arr = rem.map((_, i) => now.getTime() + (am[i + 1] + rem.slice(0, i).reduce((a, s) => a + stopMin(s), 0)) * 60000);
+    const eta = new Date(now.getTime() + (drive + dwell) * 60000);
     $('tr-km').textContent = String(Math.round(km));
-    $('tr-time').textContent = fmtMin(min);
+    $('tr-time').textContent = fmtMin(drive);
     $('tr-eta').textContent = clock(eta);
     $('tr-stops').textContent = String(rem.length);
 
@@ -530,56 +647,73 @@ const data = {
     sun.hidden = !ss; sun.classList.remove('warn');
     if (ss) {
       const gap = (ss.getTime() - eta.getTime()) / 60000;
-      if (now > ss) { sun.textContent = `Ya ha anochecido (a las ${clock(ss)}). Ojo con la visibilidad y los animales en la carretera.`; sun.classList.add('warn'); }
-      else if (gap < 0) { sun.textContent = `Anochece a las ${clock(ss)} y llegarías a las ${clock(eta)}: harías unos ${fmtMin(-gap)} de noche. Piensa en saltar alguna parada.`; sun.classList.add('warn'); }
-      else if (gap < 45) { sun.textContent = `Llegas justo: anochece a las ${clock(ss)}, unos ${fmtMin(gap)} después de tu llegada sin paradas.`; sun.classList.add('warn'); }
-      else sun.textContent = `Anochece a las ${clock(ss)}. Vas bien de luz: llegas unos ${fmtMin(gap)} antes sin contar paradas.`;
+      const fit = t.budget.k === 'none' ? ' <button type="button" class="lnk" id="sun-fit">Ajustar para llegar de día</button>' : '';
+      if (now > ss) { sun.innerHTML = `Ya ha anochecido (a las ${clock(ss)}). Ojo con la visibilidad y los animales en la carretera.`; sun.classList.add('warn'); }
+      else if (gap < 0) { sun.innerHTML = `Anochece a las ${clock(ss)} y llegarías a las ${clock(eta)}: unos ${fmtMin(-gap)} de noche.${fit}`; sun.classList.add('warn'); }
+      else if (gap < 30) { sun.innerHTML = `Llegas justo: anochece a las ${clock(ss)}, unos ${fmtMin(gap)} después de tu llegada.${fit}`; sun.classList.add('warn'); }
+      else sun.textContent = `Anochece a las ${clock(ss)}. Vas bien de luz: llegas unos ${fmtMin(gap)} antes.`;
+    }
+
+    // Comer: el sitio que te pilla de camino a buena hora
+    const atStop = t.next > 0 && hav(t.from, P.stops[t.next - 1]) < 0.6 ? P.stops[t.next - 1] : null;
+    const win = (ms: number) => { const d = new Date(ms), h = d.getHours() + d.getMinutes() / 60; return h >= 9.5 && h < 12 ? 'almuerzo' : h >= 13.5 && h < 15.75 ? 'comida' : ''; };
+    const slots = [...(atStop ? [{ s: atStop, at: now.getTime(), here: true }] : []), ...rem.map((s, i) => ({ s, at: arr[i], here: false }))];
+    let pick: { e: Eat; s: Stop; at: number; here: boolean; ty: string } | null = null;
+    for (const sl of slots) {
+      const ty = win(sl.at); if (!ty) continue;
+      const e = P.eats.filter((x) => x.near === sl.s.id && x.types.includes(ty)).sort((a, b) => +!!b.top - +!!a.top)[0];
+      if (e) { pick = { e, ty, ...sl }; break; }
+    }
+    const ep = $('trip-eatpick') as HTMLAnchorElement; ep.hidden = !pick;
+    if (pick) {
+      ep.href = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(pick.e.q)}`;
+      ep.innerHTML = `<b>Te pilla a la hora de ${pick.ty === 'almuerzo' ? 'almorzar' : 'comer'}</b> ${pick.here ? 'aquí mismo' : `en ${esc(pick.s.name)}, hacia las ${clock(pick.at)}`}: <b>${esc(pick.e.name)}</b>. ${esc(pick.e.desc)}`;
     }
 
     // Lista de lo que queda
-    const rows = rem.map((s, i) => `<li><span class="hito"><b>${Math.round(ak[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span></h3><div class="t">+${fmtMin(am[i + 1])} · hacia las ${clock(new Date(now.getTime() + am[i + 1] * 60000))}</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}</div></li>`);
-    rows.push(`<li><span class="hito"><b>${Math.round(km)}</b><small>km</small></span><div><h3>Llegada <span class="kind">${esc(t.home.name)}</span></h3><div class="t">≈ a las ${clock(eta)}, sin contar paradas</div></div></li>`);
-    const skipped = P.stops.filter((s) => t.skip.includes(s.id));
-    if (skipped.length) rows.push(`<li class="done"><span></span><div><p class="muted">Te saltas: ${skipped.map((s) => esc(s.name)).join(', ')}. <button type="button" class="here" id="trip-unskip">Recuperarlas</button></p></div></li>`);
+    const rows = rem.map((s, i) => `<li><span class="hito"><b>${Math.round(ak[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span>${prioTag(s)}</h3><div class="t">hacia las ${clock(arr[i])}${dwellTxt(s)}</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}</div></li>`);
+    rows.push(`<li><span class="hito"><b>${Math.round(km)}</b><small>km</small></span><div><h3>Llegada <span class="kind">${esc(t.home.name)}</span></h3><div class="t">≈ a las ${clock(eta)}${dwell ? `, contando ~${fmtMin(dwell)} de paradas` : ''}${pick ? ' (sin la comida)' : ''}</div></div></li>`);
+    const manual = P.stops.filter((s) => t.skip.includes(s.id));
+    if (manual.length) rows.push(`<li class="done"><span></span><div><p class="muted">Has decidido saltarte: ${manual.map((s) => esc(s.name)).join(', ')}. <button type="button" class="lnk" id="trip-unskip">Recuperarlas</button></p></div></li>`);
     $('trip-list').innerHTML = rows.join('');
 
     // Dónde comer en lo que queda
     const ids = rem.map((s) => s.id);
-    const atStop = t.next > 0 && hav(t.from, P.stops[t.next - 1]) < 0.6 ? P.stops[t.next - 1].id : '';
-    const ahead = P.eats.filter((e) => e.near && (ids.includes(e.near) || e.near === atStop))
-      .sort((x, y) => (x.near === atStop ? -1 : ids.indexOf(x.near!)) - (y.near === atStop ? -1 : ids.indexOf(y.near!))).slice(0, 4);
+    const ahead = P.eats.filter((e) => e.near && (ids.includes(e.near) || e.near === atStop?.id))
+      .sort((x, y) => (x.near === atStop?.id ? -1 : ids.indexOf(x.near!)) - (y.near === atStop?.id ? -1 : ids.indexOf(y.near!))).slice(0, 4);
     const tag: Record<string, string> = { almuerzo: 'Almorzar', comida: 'Comer' };
     ($('trip-eats-box') as HTMLElement).hidden = !ahead.length;
     $('trip-eats').innerHTML = ahead.map((e) => {
-      const s = P.stops.find((x) => x.id === e.near)!;
-      return `<a class="eat" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(e.q)}" target="_blank" rel="noopener"><span class="hito"><b>${e.near === atStop ? 'Aquí' : Math.round(ak[ids.indexOf(e.near!) + 1])}</b><small>${e.near === atStop ? 'donde estás' : 'km de ti'}</small></span><div><h3>${esc(e.name)}</h3><div class="where">${esc(e.where)} · junto a ${esc(s.name)}</div><p>${esc(e.desc)}</p><div class="chips">${e.types.map((x) => `<span class="chip">${tag[x]}</span>`).join('')}${e.top ? '<span class="chip t">Imprescindible</span>' : ''}</div></div></a>`;
+      const s = P.stops.find((x) => x.id === e.near)!, here = e.near === atStop?.id;
+      return `<a class="eat" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(e.q)}" target="_blank" rel="noopener"><span class="hito"><b>${here ? 'Aquí' : Math.round(ak[ids.indexOf(e.near!) + 1])}</b><small>${here ? 'donde estás' : 'km de ti'}</small></span><div><h3>${esc(e.name)}</h3><div class="where">${esc(e.where)} · junto a ${esc(s.name)}</div><p>${esc(e.desc)}</p><div class="chips">${e.types.map((x) => `<span class="chip">${tag[x]}</span>`).join('')}${e.top ? '<span class="chip t">Imprescindible</span>' : ''}</div></div></a>`;
     }).join('');
 
-    // Mapa: lo hecho en gris, lo que queda en rojo, tú en azul
+    // Mapa: lo hecho o descartado en gris, lo que queda en rojo, tú en azul
+    const off = (i: number) => i < t.next || t.skip.includes(P.stops[i].id) || auto.includes(P.stops[i].id);
     layer.clearLayers();
     if (route) L.polyline(route.geom, { color: '#8c99a8', weight: 4, opacity: .55, dashArray: '6 8' }).addTo(layer);
     const line = L.polyline(R.geom, { color: '#d62f2f', weight: 5, opacity: .9 }).addTo(layer);
     L.marker([t.home.lat, t.home.lng], { icon: pin('S', 'o'), title: 'Casa' }).addTo(layer).bindPopup(`<b>Vuelta</b><br>${esc(t.home.name)}`);
-    P.stops.forEach((s, i) => {
-      const done = i < t.next || t.skip.includes(s.id);
-      L.marker([s.lat, s.lng], { icon: pin(String(i + 1), done ? 'd' : '') }).addTo(layer).bindPopup(`<b>${esc(s.name)}</b>${done ? ' · hecho' : ''}<br>${esc(s.note ?? '')}`);
-    });
+    P.stops.forEach((s, i) => L.marker([s.lat, s.lng], { icon: pin(String(i + 1), off(i) ? 'd' : '') }).addTo(layer)
+      .bindPopup(`<b>${esc(s.name)}</b>${i < t.next ? ' · hecho' : off(i) ? ' · te la saltas' : ''}<br>${esc(s.note ?? '')}`));
     L.marker([t.from.lat, t.from.lng], { icon: L.divIcon({ className: '', html: '<span class="pin m"></span>', iconSize: [22, 22], iconAnchor: [11, 11] }), title: 'Estás aquí', zIndexOffset: 1000 }).addTo(layer).bindPopup('<b>Estás aquí</b>');
     map.fitBounds(line.getBounds(), { padding: [24, 24] });
 
-    // Road book: atenúa lo ya hecho
-    $('book').querySelectorAll('li').forEach((li, k) => { const i = k - 1; li.classList.toggle('done', i >= 0 && i < P.stops.length && (i < t.next || t.skip.includes(P.stops[i].id))); });
+    // Road book: atenúa lo ya hecho o descartado
+    $('book').querySelectorAll('li').forEach((li, k) => { const i = k - 1; li.classList.toggle('done', i >= 0 && i < P.stops.length && off(i)); });
   }
 
-  function setTrip(next: Trip | null, msg = '') {
-    trip = next; tripMsg = msg; saveTrip(); showTripUI();
-    if (trip) { renderTrip(); $('tripband').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function setTrip(next: Trip | null, msg = '', q: Ask | null = null, scroll = false) {
+    trip = next; tripMsg = msg; ask = q; saveTrip(); showTripUI();
+    if (trip) { renderTrip(); if (scroll) $('tripband').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     else if (route) render();
   }
+  const moveTo = (n: number, msg: string) => { if (trip) setTrip({ ...trip, next: n, skip: trip.skip.filter((id) => P.stops.findIndex((s) => s.id === id) >= n) }, msg); };
 
   function startTrip() {
     const prior = trip ?? loadTrip();
-    if (!navigator.geolocation) { setTrip({ home: prior?.home ?? defaultHome(), from: prior?.from ?? { ...P.stops[0] }, next: prior?.next ?? 0, skip: prior?.skip ?? [], t: Date.now() }, 'Tu navegador no da la ubicación: elige tu próxima parada o toca «Estoy aquí» en el road book.'); return; }
+    const keep = { skip: prior?.skip ?? [], budget: prior?.budget ?? NOB, t: Date.now() };
+    if (!navigator.geolocation) { setTrip({ home: prior?.home ?? defaultHome(), from: prior?.from ?? { ...P.stops[0] }, next: prior?.next ?? 0, ...keep }, 'Tu navegador no da la ubicación: toca «Estoy aquí» en una parada del road book.', null, true); return; }
     const btns = ['trip-go', 'trip-loc'].map((id) => $(id) as HTMLButtonElement);
     const label = btns.map((b) => b.textContent);
     btns.forEach((b) => { b.disabled = true; b.textContent = 'Buscando tu ubicación…'; });
@@ -593,10 +727,9 @@ const data = {
         const b = P.bases.find((x) => x.lat === home.lat && x.lng === home.lng); if (b) sel.value = 'city:' + b.id;
         trip = null; await compute();
       }
-      const d = detect(me);
+      const d = locate(me, prior);
       done();
-      setTrip({ home, from: { ...me, name: 'Tu ubicación' }, next: d ? d.next : (prior?.next ?? 0), skip: prior?.skip ?? [], t: Date.now() },
-        d ? d.msg : 'Estás lejos del recorrido (quizá has parado a comer fuera de ruta): elige cuál es tu próxima parada.');
+      setTrip({ home, from: { ...me, name: 'Tu ubicación' }, next: d.next, ...keep }, d.msg, d.ask ?? null, !prior);
     }, () => {
       done();
       if (prior) setTrip({ ...prior }, 'No he podido leer tu ubicación: sigo desde donde lo dejaste. Revisa el permiso del navegador.');
@@ -608,16 +741,34 @@ const data = {
   $('trip-loc').addEventListener('click', startTrip);
   $('trip-drop').addEventListener('click', () => { try { localStorage.removeItem(TKEY); } catch {} showTripUI(); });
   $('trip-end').addEventListener('click', () => setTrip(null));
-  $('trip-next').addEventListener('change', (ev) => {
-    if (!trip) return; const n = +(ev.target as HTMLSelectElement).value;
-    setTrip({ ...trip, next: n, skip: trip.skip.filter((id) => P.stops.findIndex((s) => s.id === id) >= n) }, `Vale: tu próxima parada es ${n < P.stops.length ? P.stops[n].name : 'la vuelta a ' + trip.home.name}.`);
+  $('ask-yes').addEventListener('click', () => { if (ask && trip) moveTo(ask.yes, 'Vale.'); });
+  $('ask-no').addEventListener('click', () => { if (ask && trip) moveTo(ask.no, 'Vale.'); });
+  $('fix-ahead').addEventListener('click', () => { if (trip) moveTo(trip.next + 1, `Vale, ya has pasado por ${P.stops[trip.next].name}.`); });
+  $('fix-back').addEventListener('click', () => { if (trip) moveTo(trip.next - 1, `Vale, aún no has llegado a ${P.stops[trip.next - 1].name}.`); });
+  const setBudget = (b: Budget) => { if (trip) { tMat = null; setTrip({ ...trip, budget: b }, tripMsg, ask); } };
+  $('budget').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('.f'); if (!b || !trip) return;
+    const v = b.dataset.b!, form = $('until-form') as HTMLFormElement;
+    form.hidden = v !== 'until';
+    if (v === 'until') { const i = $('until') as HTMLInputElement; if (!i.value) i.value = clock(Date.now() + 2 * 3600e3); i.focus(); return; }
+    if (v === 'none') setBudget(NOB);
+    else if (v === 'sun') setBudget({ k: 'sun', key: 'sun', label: 'Para llegar de día' });
+    else setBudget({ k: 'min', key: v, label: `Con ${fmtMin(+v)}`, at: Date.now() + +v * 60000 });
   });
-  $('trip-skip').addEventListener('click', () => { const r = remaining(); if (trip && r.length) setTrip({ ...trip, skip: [...trip.skip, r[0].id] }, `Te saltas ${r[0].name}.`); });
+  $('until-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const [h, m] = ($('until') as HTMLInputElement).value.split(':').map(Number); if (isNaN(h)) return;
+    const d = new Date(); d.setHours(h, m || 0, 0, 0);
+    ($('until-form') as HTMLFormElement).hidden = true;
+    setBudget({ k: 'until', key: 'until', label: `Para estar en ${trip?.home.name ?? 'casa'} a las ${clock(d)}`, at: d.getTime() });
+  });
+  $('trip-sun').addEventListener('click', (ev) => { if ((ev.target as HTMLElement).id === 'sun-fit') setBudget({ k: 'sun', key: 'sun', label: 'Para llegar de día' }); });
+  $('trip-skip').addEventListener('click', () => { const r = lastRem; if (trip && r.length) setTrip({ ...trip, skip: [...trip.skip, r[0].id] }, `Te saltas ${r[0].name}.`); });
   $('trip-list').addEventListener('click', (ev) => { if ((ev.target as HTMLElement).id === 'trip-unskip' && trip) setTrip({ ...trip, skip: [] }, 'Paradas recuperadas.'); });
   $('book').addEventListener('click', (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('.here'); if (!b) return;
     const i = +b.dataset.i!, s = P.stops[i], prior = trip ?? loadTrip();
-    setTrip({ home: prior?.home ?? defaultHome(), from: { lat: s.lat, lng: s.lng, name: s.name }, next: i + 1, skip: (prior?.skip ?? []).filter((id) => P.stops.findIndex((x) => x.id === id) > i), t: Date.now() }, `Estás en ${s.name}: te cuento lo que queda a partir de aquí.`);
+    setTrip({ home: prior?.home ?? defaultHome(), from: { lat: s.lat, lng: s.lng, name: s.name }, next: i + 1, skip: (prior?.skip ?? []).filter((id) => P.stops.findIndex((x) => x.id === id) > i), budget: prior?.budget ?? NOB, t: Date.now() }, `Estás en ${s.name}: sigues desde aquí.`, null, true);
   });
   // Si cambias la salida con la ruta en marcha, la vuelta pasa a ser esa
   sel.addEventListener('change', () => { if (trip && sel.value.startsWith('city:')) { trip.home = { ...P.bases.find((b) => 'city:' + b.id === sel.value)! }; saveTrip(); } });

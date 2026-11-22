@@ -27,6 +27,8 @@ Copia uno de `src/data/plans/es/` y cambia:
 
 - `stops`: las paradas del **núcleo** de la ruta, en orden. Es agnóstico de la ciudad: el recorrido completo
   (salida → paradas → vuelta) se calcula en el navegador desde donde salga cada uno.
+  Cada parada lleva `prio` (`must` imprescindible, `good` buena, `optional` si da tiempo) y `dwell`
+  (minutos que se suele parar). Con eso, el modo «en ruta» decide qué paradas caben cuando tienes poco tiempo.
 - `bases`: cuánto se tarda desde cada ciudad base hasta el inicio (`minutes`, `km`). Para que aparezca en el
   listado de otra ciudad, añade otra base.
 - `core`: km y minutos del núcleo.

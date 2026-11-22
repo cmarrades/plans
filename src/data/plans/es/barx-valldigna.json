@@ -10,12 +10,12 @@
   "core": { "km": 38, "minutes": 60 },
   "bases": [{ "city": "valencia", "minutes": 45, "km": 55 }],
   "stops": [
-    { "id": "tavernes", "name": "Tavernes de la Valldigna", "kind": "Pueblo", "lat": 39.0717, "lng": -0.2667, "maps": "Tavernes de la Valldigna", "note": "Entrada al valle, entre naranjos." },
-    { "id": "monasterio", "name": "Monasterio de Santa María de la Valldigna", "kind": "Monumento", "lat": 39.0333, "lng": -0.3167, "maps": "Real Monasterio de Santa María de la Valldigna, Simat", "note": "Monasterio cisterciense fundado en 1298. Visitas guiadas gratuitas los fines de semana por la mañana." },
-    { "id": "visteta", "name": "Mirador de La Visteta", "kind": "Mirador", "lat": 39.0285, "lng": -0.305, "maps": "Mirador La Visteta, Barx", "note": "A media subida del puerto: vistas a Simat y a la playa de Tavernes." },
-    { "id": "barx", "name": "Barx", "kind": "Pueblo", "lat": 39.0175, "lng": -0.3033, "maps": "Barx, Valencia", "note": "Pueblo de montaña tras el puerto. Plaza con terrazas." },
-    { "id": "drova", "name": "Puerto de La Drova", "kind": "Puerto", "lat": 39.0005, "lng": -0.2705, "maps": "Port de la Drova, Barx", "note": "Bajada larga de curvas suaves hacia Gandia." },
-    { "id": "gandia", "name": "Gandia", "kind": "Ciudad", "lat": 38.968, "lng": -0.181, "maps": "Gandia", "note": "Final de la parte bonita. Desde aquí, vuelta." }
+    { "id": "tavernes", "name": "Tavernes de la Valldigna", "kind": "Pueblo", "prio": "optional", "dwell": 0, "lat": 39.0717, "lng": -0.2667, "maps": "Tavernes de la Valldigna", "note": "Entrada al valle, entre naranjos." },
+    { "id": "monasterio", "name": "Monasterio de Santa María de la Valldigna", "kind": "Monumento", "prio": "good", "dwell": 30, "lat": 39.0333, "lng": -0.3167, "maps": "Real Monasterio de Santa María de la Valldigna, Simat", "note": "Monasterio cisterciense fundado en 1298. Visitas guiadas gratuitas los fines de semana por la mañana." },
+    { "id": "visteta", "name": "Mirador de La Visteta", "kind": "Mirador", "prio": "must", "dwell": 10, "lat": 39.0285, "lng": -0.305, "maps": "Mirador La Visteta, Barx", "note": "A media subida del puerto: vistas a Simat y a la playa de Tavernes." },
+    { "id": "barx", "name": "Barx", "kind": "Pueblo", "prio": "good", "dwell": 10, "lat": 39.0175, "lng": -0.3033, "maps": "Barx, Valencia", "note": "Pueblo de montaña tras el puerto. Plaza con terrazas." },
+    { "id": "drova", "name": "Puerto de La Drova", "kind": "Puerto", "prio": "must", "dwell": 0, "lat": 39.0005, "lng": -0.2705, "maps": "Port de la Drova, Barx", "note": "Bajada larga de curvas suaves hacia Gandia." },
+    { "id": "gandia", "name": "Gandia", "kind": "Ciudad", "prio": "optional", "dwell": 0, "lat": 38.968, "lng": -0.181, "maps": "Gandia", "note": "Final de la parte bonita. Desde aquí, vuelta." }
   ],
   "eats": [
     { "name": "Restaurante Puigmola", "where": "Barx", "near": "barx", "q": "Restaurante Puigmola, Barx", "types": ["comida"], "top": true, "desc": "Restaurante de toda la vida, famoso por sus arroces y paellas. Muy concurrido: reserva." },
