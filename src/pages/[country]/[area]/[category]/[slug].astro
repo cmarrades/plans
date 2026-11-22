@@ -55,6 +55,55 @@ const data = {
     </div>
   </section>
 
+  <section class="band tripband" id="tripband">
+    <div class="wrap">
+      <div class="tstart" id="trip-start">
+        <div>
+          <h2>¿Ya estás en ruta?</h2>
+          <p class="muted">Si has parado a comer o a descansar, sigue desde donde estás: te enseño lo que te queda y a qué hora llegas.</p>
+          <p class="resume" id="trip-resume" hidden></p>
+        </div>
+        <div class="tbtns">
+          <button class="btn red big" id="trip-go" type="button">Estoy en ruta: seguir desde aquí</button>
+          <button class="btn ghost" id="trip-drop" type="button" hidden>Descartar la ruta a medias</button>
+        </div>
+      </div>
+      <div class="trip" id="trip" hidden>
+        <div class="thead">
+          <h2>Lo que te queda</h2>
+          <button class="btn ghost" id="trip-end" type="button">Terminar ruta</button>
+        </div>
+        <p class="tmsg" id="trip-msg" aria-live="polite"></p>
+        <div class="tnext">
+          <label for="trip-next"><b>Próxima parada</b></label>
+          <div class="orow">
+            <select id="trip-next"></select>
+            <button class="btn blue" id="trip-loc" type="button">Actualizar mi posición</button>
+          </div>
+        </div>
+        <div class="totals" aria-live="polite">
+          <span class="hito"><b id="tr-km">–</b><small>km quedan</small></span>
+          <span class="hito"><b id="tr-time">–</b><small>en moto</small></span>
+          <span class="hito"><b id="tr-eta">–</b><small>llegada</small></span>
+          <span class="hito"><b id="tr-stops">–</b><small>paradas</small></span>
+        </div>
+        <p class="sun" id="trip-sun" hidden></p>
+        <ol class="book" id="trip-list"></ol>
+        <div class="tacts">
+          <a class="btn red big" id="trip-gm" href="#" target="_blank" rel="noopener">Seguir ruta en Google Maps</a>
+          <a class="btn blue" id="trip-gm1" href="#" target="_blank" rel="noopener">Solo hasta la próxima parada</a>
+          <button class="btn ghost" id="trip-skip" type="button">Saltar la siguiente parada</button>
+          <a class="btn ghost" id="trip-home" href="#" target="_blank" rel="noopener">Volver directo a casa</a>
+        </div>
+        <p class="muted small">Google Maps sale desde donde estés en ese momento. En Maps, activa «Evitar autopistas».</p>
+        <div id="trip-eats-box" hidden>
+          <h3>Para comer lo que te queda</h3>
+          <div class="eats" id="trip-eats"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="band mapband">
     <div class="wrap mgrid">
       <div class="mapbox"><div id="map" role="img" aria-label="Mapa del recorrido"></div></div>
@@ -147,6 +196,23 @@ const data = {
   .f{min-height:44px;padding:8px 16px;border-radius:999px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:700 15px Overpass,sans-serif;cursor:pointer}
   .f.on{background:var(--blue);border-color:var(--blue);color:#fff}
   .eats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:14px}
+  .tripband{border-bottom:1px solid var(--line)}
+  .tstart{display:flex;flex-wrap:wrap;gap:14px 32px;align-items:center;justify-content:space-between}
+  .tstart h2{margin-bottom:4px}.tstart p{margin:0}
+  .resume{margin-top:8px!important;font-weight:700}
+  .tbtns{display:flex;flex-direction:column;gap:8px}
+  .tbtns [hidden],.trip[hidden],.tstart[hidden],#trip-eats-box[hidden],.sun[hidden]{display:none}
+  .trip{display:grid;gap:16px}
+  .thead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+  .thead h2{margin:0}
+  .tmsg{margin:0;font-weight:600}
+  .tnext{display:grid;gap:8px}
+  .sun{margin:0;padding:10px 14px;border-radius:10px;background:var(--panel);font-weight:600}
+  .sun.warn{background:#fde8e8;color:#8a1414}
+  .tacts{display:flex;flex-wrap:wrap;gap:10px}
+  .tacts .btn[aria-disabled=true]{opacity:.45;pointer-events:none}
+  .book :global(li.done){opacity:.5}
+  :global(.here){margin-top:8px;min-height:40px;padding:6px 14px;border-radius:999px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:700 14px Overpass,sans-serif;cursor:pointer}
   @media(max-width:860px){.mgrid,.rgrid{grid-template-columns:minmax(0,1fr)}}
 </style>
 <style is:global>
@@ -163,6 +229,8 @@ const data = {
   .pin{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#fff;color:#0d4c92;border:3px solid #0d4c92;font-weight:900;font-size:13px;box-shadow:0 2px 6px #0005}
   .pin.o{background:#d62f2f;border-color:#fff;color:#fff}
   .pin.e{width:22px;height:22px;background:#d62f2f;border-color:#fff;color:#fff;font-size:11px}
+  .pin.d{background:#e4e8ee;border-color:#8c99a8;color:#5b6878}
+  .pin.m{width:22px;height:22px;background:#1a73e8;border-color:#fff;box-shadow:0 0 0 6px #1a73e855}
 </style>
 
 <script>
@@ -259,7 +327,7 @@ const data = {
 
     // Road book
     const rows = [`<li><span class="hito"><b>0</b><small>km</small></span><div><h3>Salida <span class="kind">${esc(origin.name)}</span></h3></div></li>`]
-      .concat(P.stops.map((s, i) => `<li><span class="hito"><b>${Math.round(a[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span></h3><div class="t">+${fmtMin(m[i + 1])} desde la salida</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}</div></li>`))
+      .concat(P.stops.map((s, i) => `<li><span class="hito"><b>${Math.round(a[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span></h3><div class="t">+${fmtMin(m[i + 1])} desde la salida</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}<button type="button" class="here" data-i="${i}">Estoy aquí: seguir desde esta parada</button></div></li>`))
       .concat(`<li><span class="hito"><b>${Math.round(total)}</b><small>km</small></span><div><h3>Llegada <span class="kind">${esc(origin.name)}</span></h3><div class="t">≈ ${fmtMin(tmin)} en total, sin paradas</div></div></li>`);
     $('book').innerHTML = rows.join('');
 
@@ -274,6 +342,7 @@ const data = {
     $('gm-legs').innerHTML = legs.join('');
 
     renderEats();
+    if (trip) renderTrip();
   }
 
   function renderEats() {
@@ -346,6 +415,213 @@ const data = {
     }
     renderEats();
   }));
+
+  // ---------- En ruta: seguir desde donde estás ----------
+  type Place = Pt & { name: string };
+  type Trip = { home: Place; from: Place; next: number; skip: string[]; t: number };
+  const TKEY = 'plans-trip:' + P.slug, TMAX = 12 * 3600e3;
+  let trip: Trip | null = null;
+  let tripMsg = '';
+  let tRoute: { key: string; geom: [number, number][]; legKm: number[]; legMin: number[]; real: boolean } | null = null;
+  let tSeq = 0;
+
+  const saveTrip = () => { try { trip ? localStorage.setItem(TKEY, JSON.stringify({ ...trip, t: Date.now() })) : localStorage.removeItem(TKEY); } catch {} };
+  const loadTrip = (): Trip | null => {
+    try { const t = JSON.parse(localStorage.getItem(TKEY) || 'null'); return t && Date.now() - t.t < TMAX && t.home && t.from ? t : null; } catch { return null; }
+  };
+  const remaining = () => trip ? P.stops.slice(trip.next).filter((s) => !trip!.skip.includes(s.id)) : [];
+  const clock = (d: Date) => d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const defaultHome = (): Place => origin.name === 'Tu ubicación' ? { ...P.bases[0] } : { ...origin };
+
+  // Puesta de sol (ecuación del amanecer; ±2 min, suficiente para avisar)
+  function sunset(d: Date, p: Pt): Date | null {
+    const rad = Math.PI / 180, jd = d.getTime() / 86400000 + 2440587.5;
+    const n = Math.round(jd - 2451545 - 0.0009 - p.lng / 360);
+    const js = n + 0.0009 - p.lng / 360 + 2451545;
+    const M = (357.5291 + 0.98560028 * (js - 2451545)) % 360;
+    const C = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
+    const lam = (M + C + 180 + 102.9372) % 360;
+    const jt = js + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * lam * rad);
+    const dec = Math.asin(Math.sin(lam * rad) * Math.sin(23.4397 * rad));
+    const cw = (Math.sin(-0.833 * rad) - Math.sin(p.lat * rad) * Math.sin(dec)) / (Math.cos(p.lat * rad) * Math.cos(dec));
+    if (cw < -1 || cw > 1) return null;
+    return new Date((jt + Math.acos(cw) / rad / 360 - 2440587.5) * 86400000);
+  }
+
+  // ¿Por dónde vas? Te sitúa en el recorrido completo y deduce la próxima parada
+  function detect(p: Pt): { next: number; msg: string } | null {
+    const near = P.stops.map((s, i) => ({ i, d: hav(p, s) })).sort((a, b) => a.d - b.d)[0];
+    if (near && near.d < 0.6) return { next: near.i + 1, msg: `Estás en ${P.stops[near.i].name}: te cuento lo que queda a partir de aquí.` };
+    if (!route) return null;
+    if (!route.real) {
+      if (!near || near.d > 3) return null;
+      return { next: near.i + 1, msg: `Te he situado cerca de ${P.stops[near.i].name}. Si no es así, cambia la próxima parada.` };
+    }
+    const g = route.geom, at = (k: number) => ({ lat: g[k][0], lng: g[k][1] });
+    // índice de cada parada en el trazado, buscando siempre hacia delante
+    const sIdx: number[] = []; let from = 0;
+    P.stops.forEach((s) => { let b = from, bd = Infinity; for (let k = from; k < g.length; k++) { const d = hav(s, at(k)); if (d < bd) { bd = d; b = k; } } sIdx.push(b); from = b; });
+    let bi = 0, bd = Infinity; g.forEach((_, k) => { const d = hav(p, at(k)); if (d < bd) { bd = d; bi = k; } });
+    if (bd > 3) return null;
+    const next = sIdx.findIndex((k) => k > bi);
+    const n = next < 0 ? P.stops.length : next;
+    return { next: n, msg: `Te he situado en el recorrido, a ${bd < 0.5 ? 'pie de carretera' : `${bd.toFixed(1).replace('.', ',')} km de la ruta`}. Si no es así, cambia la próxima parada.` };
+  }
+
+  function showTripUI() {
+    const on = !!trip;
+    ($('trip') as HTMLElement).hidden = !on;
+    ($('trip-start') as HTMLElement).hidden = on;
+    const saved = on ? null : loadTrip();
+    const rs = $('trip-resume') as HTMLElement, dr = $('trip-drop') as HTMLElement;
+    rs.hidden = dr.hidden = !saved;
+    if (saved) rs.textContent = `Tienes esta ruta a medias: ${saved.next < P.stops.length ? 'te toca ' + P.stops[saved.next].name : 'solo te queda volver'}.`;
+    $('trip-go').textContent = saved ? 'Seguir la ruta desde aquí' : 'Estoy en ruta: seguir desde aquí';
+  }
+
+  async function renderTrip() {
+    if (!trip) return;
+    const t = trip, rem = remaining();
+    const sel2 = $('trip-next') as HTMLSelectElement;
+    sel2.innerHTML = P.stops.map((s, i) => `<option value="${i}">${i + 1}. ${esc(s.name)}</option>`).join('') + `<option value="${P.stops.length}">Ninguna: solo volver a ${esc(t.home.name)}</option>`;
+    sel2.value = String(t.next);
+    $('trip-msg').textContent = tripMsg || `Siguiendo desde ${t.from.name}.`;
+
+    // Google Maps: sin origen, así sale desde donde estés de verdad
+    const gm = (pts: (Pt & { maps?: string })[]) => {
+      const v = (p: Pt & { maps?: string }) => encodeURIComponent(p.maps ?? `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`);
+      const d = pts[pts.length - 1], w = pts.slice(0, -1);
+      return `https://www.google.com/maps/dir/?api=1&travelmode=${P.mode === 'walking' ? 'walking' : 'driving'}&destination=${v(d)}` + (w.length ? `&waypoints=${w.map(v).join('%7C')}` : '');
+    };
+    const homeP = { lat: t.home.lat, lng: t.home.lng };
+    ($('trip-gm') as HTMLAnchorElement).href = gm([...rem, homeP]);
+    const g1 = $('trip-gm1') as HTMLAnchorElement; g1.href = rem.length ? gm([rem[0]]) : '#'; g1.setAttribute('aria-disabled', String(!rem.length));
+    if (rem.length) g1.textContent = `Solo hasta ${rem[0].name}`;
+    ($('trip-home') as HTMLAnchorElement).href = gm([homeP]);
+    const sk = $('trip-skip') as HTMLButtonElement; sk.disabled = !rem.length; sk.setAttribute('aria-disabled', String(!rem.length));
+    sk.textContent = rem.length ? `Saltar ${rem[0].name}` : 'Saltar la siguiente parada';
+
+    // Recorrido que queda (con caché para no recalcular lo mismo)
+    const seq: Place[] = [t.from, ...rem, t.home];
+    const key = JSON.stringify(seq.map((p) => [p.lat.toFixed(4), p.lng.toFixed(4)]));
+    const my = ++tSeq;
+    if (!tRoute || tRoute.key !== key) {
+      $('tr-km').textContent = '…';
+      try {
+        let r; try { r = await osrm(seq, true); } catch { r = await osrm(seq, false); }
+        tRoute = { key, geom: r.geometry.coordinates.map(([x, y]: number[]) => [y, x]), legKm: r.legs.map((l: any) => l.distance / 1000), legMin: r.legs.map((l: any) => l.duration / 60 * 1.1), real: true };
+      } catch {
+        const legKm = seq.slice(1).map((p, i) => hav(seq[i], p) * 1.3);
+        tRoute = { key, geom: seq.map((p) => [p.lat, p.lng]), legKm, legMin: legKm.map((k) => k / 50 * 60), real: false };
+      }
+      if (my !== tSeq || !trip) return; // ha cambiado algo mientras calculaba
+    }
+    const R = tRoute;
+    const ak = [0], am = [0]; R.legKm.forEach((k, i) => { ak.push(ak[i] + k); am.push(am[i] + R.legMin[i]); });
+    const km = ak[ak.length - 1], min = am[am.length - 1];
+    const now = new Date(), eta = new Date(now.getTime() + min * 60000);
+    $('tr-km').textContent = String(Math.round(km));
+    $('tr-time').textContent = fmtMin(min);
+    $('tr-eta').textContent = clock(eta);
+    $('tr-stops').textContent = String(rem.length);
+
+    // Aviso de anochecer
+    const sun = $('trip-sun') as HTMLElement, ss = sunset(now, t.from);
+    sun.hidden = !ss; sun.classList.remove('warn');
+    if (ss) {
+      const gap = (ss.getTime() - eta.getTime()) / 60000;
+      if (now > ss) { sun.textContent = `Ya ha anochecido (a las ${clock(ss)}). Ojo con la visibilidad y los animales en la carretera.`; sun.classList.add('warn'); }
+      else if (gap < 0) { sun.textContent = `Anochece a las ${clock(ss)} y llegarías a las ${clock(eta)}: harías unos ${fmtMin(-gap)} de noche. Piensa en saltar alguna parada.`; sun.classList.add('warn'); }
+      else if (gap < 45) { sun.textContent = `Llegas justo: anochece a las ${clock(ss)}, unos ${fmtMin(gap)} después de tu llegada sin paradas.`; sun.classList.add('warn'); }
+      else sun.textContent = `Anochece a las ${clock(ss)}. Vas bien de luz: llegas unos ${fmtMin(gap)} antes sin contar paradas.`;
+    }
+
+    // Lista de lo que queda
+    const rows = rem.map((s, i) => `<li><span class="hito"><b>${Math.round(ak[i + 1])}</b><small>km</small></span><div><h3>${esc(s.name)} <span class="kind">${esc(s.kind)}</span></h3><div class="t">+${fmtMin(am[i + 1])} · hacia las ${clock(new Date(now.getTime() + am[i + 1] * 60000))}</div>${s.note ? `<p class="muted">${esc(s.note)}</p>` : ''}</div></li>`);
+    rows.push(`<li><span class="hito"><b>${Math.round(km)}</b><small>km</small></span><div><h3>Llegada <span class="kind">${esc(t.home.name)}</span></h3><div class="t">≈ a las ${clock(eta)}, sin contar paradas</div></div></li>`);
+    const skipped = P.stops.filter((s) => t.skip.includes(s.id));
+    if (skipped.length) rows.push(`<li class="done"><span></span><div><p class="muted">Te saltas: ${skipped.map((s) => esc(s.name)).join(', ')}. <button type="button" class="here" id="trip-unskip">Recuperarlas</button></p></div></li>`);
+    $('trip-list').innerHTML = rows.join('');
+
+    // Dónde comer en lo que queda
+    const ids = rem.map((s) => s.id);
+    const atStop = t.next > 0 && hav(t.from, P.stops[t.next - 1]) < 0.6 ? P.stops[t.next - 1].id : '';
+    const ahead = P.eats.filter((e) => e.near && (ids.includes(e.near) || e.near === atStop))
+      .sort((x, y) => (x.near === atStop ? -1 : ids.indexOf(x.near!)) - (y.near === atStop ? -1 : ids.indexOf(y.near!))).slice(0, 4);
+    const tag: Record<string, string> = { almuerzo: 'Almorzar', comida: 'Comer' };
+    ($('trip-eats-box') as HTMLElement).hidden = !ahead.length;
+    $('trip-eats').innerHTML = ahead.map((e) => {
+      const s = P.stops.find((x) => x.id === e.near)!;
+      return `<a class="eat" href="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(e.q)}" target="_blank" rel="noopener"><span class="hito"><b>${e.near === atStop ? 'Aquí' : Math.round(ak[ids.indexOf(e.near!) + 1])}</b><small>${e.near === atStop ? 'donde estás' : 'km de ti'}</small></span><div><h3>${esc(e.name)}</h3><div class="where">${esc(e.where)} · junto a ${esc(s.name)}</div><p>${esc(e.desc)}</p><div class="chips">${e.types.map((x) => `<span class="chip">${tag[x]}</span>`).join('')}${e.top ? '<span class="chip t">Imprescindible</span>' : ''}</div></div></a>`;
+    }).join('');
+
+    // Mapa: lo hecho en gris, lo que queda en rojo, tú en azul
+    layer.clearLayers();
+    if (route) L.polyline(route.geom, { color: '#8c99a8', weight: 4, opacity: .55, dashArray: '6 8' }).addTo(layer);
+    const line = L.polyline(R.geom, { color: '#d62f2f', weight: 5, opacity: .9 }).addTo(layer);
+    L.marker([t.home.lat, t.home.lng], { icon: pin('S', 'o'), title: 'Casa' }).addTo(layer).bindPopup(`<b>Vuelta</b><br>${esc(t.home.name)}`);
+    P.stops.forEach((s, i) => {
+      const done = i < t.next || t.skip.includes(s.id);
+      L.marker([s.lat, s.lng], { icon: pin(String(i + 1), done ? 'd' : '') }).addTo(layer).bindPopup(`<b>${esc(s.name)}</b>${done ? ' · hecho' : ''}<br>${esc(s.note ?? '')}`);
+    });
+    L.marker([t.from.lat, t.from.lng], { icon: L.divIcon({ className: '', html: '<span class="pin m"></span>', iconSize: [22, 22], iconAnchor: [11, 11] }), title: 'Estás aquí', zIndexOffset: 1000 }).addTo(layer).bindPopup('<b>Estás aquí</b>');
+    map.fitBounds(line.getBounds(), { padding: [24, 24] });
+
+    // Road book: atenúa lo ya hecho
+    $('book').querySelectorAll('li').forEach((li, k) => { const i = k - 1; li.classList.toggle('done', i >= 0 && i < P.stops.length && (i < t.next || t.skip.includes(P.stops[i].id))); });
+  }
+
+  function setTrip(next: Trip | null, msg = '') {
+    trip = next; tripMsg = msg; saveTrip(); showTripUI();
+    if (trip) { renderTrip(); $('tripband').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    else if (route) render();
+  }
+
+  function startTrip() {
+    const prior = trip ?? loadTrip();
+    if (!navigator.geolocation) { setTrip({ home: prior?.home ?? defaultHome(), from: prior?.from ?? { ...P.stops[0] }, next: prior?.next ?? 0, skip: prior?.skip ?? [], t: Date.now() }, 'Tu navegador no da la ubicación: elige tu próxima parada o toca «Estoy aquí» en el road book.'); return; }
+    const btns = ['trip-go', 'trip-loc'].map((id) => $(id) as HTMLButtonElement);
+    const label = btns.map((b) => b.textContent);
+    btns.forEach((b) => { b.disabled = true; b.textContent = 'Buscando tu ubicación…'; });
+    const done = () => btns.forEach((b, i) => { b.disabled = false; b.textContent = label[i]; });
+    navigator.geolocation.getCurrentPosition(async (p) => {
+      me = { lat: p.coords.latitude, lng: p.coords.longitude };
+      const home = prior?.home ?? defaultHome();
+      // el recorrido de referencia es el que sale y vuelve a casa
+      if (!route || origin.lat !== home.lat || origin.lng !== home.lng) {
+        origin = { ...home };
+        const b = P.bases.find((x) => x.lat === home.lat && x.lng === home.lng); if (b) sel.value = 'city:' + b.id;
+        trip = null; await compute();
+      }
+      const d = detect(me);
+      done();
+      setTrip({ home, from: { ...me, name: 'Tu ubicación' }, next: d ? d.next : (prior?.next ?? 0), skip: prior?.skip ?? [], t: Date.now() },
+        d ? d.msg : 'Estás lejos del recorrido (quizá has parado a comer fuera de ruta): elige cuál es tu próxima parada.');
+    }, () => {
+      done();
+      if (prior) setTrip({ ...prior }, 'No he podido leer tu ubicación: sigo desde donde lo dejaste. Revisa el permiso del navegador.');
+      else { const rs = $('trip-resume') as HTMLElement; rs.hidden = false; rs.textContent = 'No he podido obtener tu ubicación. Revisa el permiso del navegador o toca «Estoy aquí» en una parada del road book.'; }
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+
+  $('trip-go').addEventListener('click', startTrip);
+  $('trip-loc').addEventListener('click', startTrip);
+  $('trip-drop').addEventListener('click', () => { try { localStorage.removeItem(TKEY); } catch {} showTripUI(); });
+  $('trip-end').addEventListener('click', () => setTrip(null));
+  $('trip-next').addEventListener('change', (ev) => {
+    if (!trip) return; const n = +(ev.target as HTMLSelectElement).value;
+    setTrip({ ...trip, next: n, skip: trip.skip.filter((id) => P.stops.findIndex((s) => s.id === id) >= n) }, `Vale: tu próxima parada es ${n < P.stops.length ? P.stops[n].name : 'la vuelta a ' + trip.home.name}.`);
+  });
+  $('trip-skip').addEventListener('click', () => { const r = remaining(); if (trip && r.length) setTrip({ ...trip, skip: [...trip.skip, r[0].id] }, `Te saltas ${r[0].name}.`); });
+  $('trip-list').addEventListener('click', (ev) => { if ((ev.target as HTMLElement).id === 'trip-unskip' && trip) setTrip({ ...trip, skip: [] }, 'Paradas recuperadas.'); });
+  $('book').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('.here'); if (!b) return;
+    const i = +b.dataset.i!, s = P.stops[i], prior = trip ?? loadTrip();
+    setTrip({ home: prior?.home ?? defaultHome(), from: { lat: s.lat, lng: s.lng, name: s.name }, next: i + 1, skip: (prior?.skip ?? []).filter((id) => P.stops.findIndex((x) => x.id === id) > i), t: Date.now() }, `Estás en ${s.name}: te cuento lo que queda a partir de aquí.`);
+  });
+  // Si cambias la salida con la ruta en marcha, la vuelta pasa a ser esa
+  sel.addEventListener('change', () => { if (trip && sel.value.startsWith('city:')) { trip.home = { ...P.bases.find((b) => 'city:' + b.id === sel.value)! }; saveTrip(); } });
+  showTripUI();
 
   // Arranque: la última salida usada, o la primera ciudad base
   let saved = ''; try { saved = localStorage.getItem('plans-origin') || ''; } catch {}
